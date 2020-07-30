@@ -5,6 +5,8 @@
 
 USB2RS485 V2.2 is a FT232RL based USB to Serial/RS485 Converter for interfacing RS485 controlled devices with your PC or Mac.USB2RS485 converter is ideal for connecting Industrial and scientific equipments in high noise environments. 
 
+ [USB to Serial/RS485 Converter](https://www.xanthium.in/ft232-based-usb-to-serial-rs485-converter-industrial-scientific-applications)
+
 The device can be used as a 
 
   - **USB to RS485 Converter*** [A,B,Ground] (half Duplex)
@@ -24,6 +26,9 @@ to develop your own RS485 communication Protocol.
 
 - Visit our website to [buy USB to Serial/RS485 Converter](https://www.xanthium.in/ft232-based-usb-to-serial-rs485-converter-industrial-scientific-applications)
 
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+## Online Tutorials
 
 
- 
+
