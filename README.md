@@ -9,16 +9,30 @@ USB2RS485 V2.2 is a FT232RL based USB to Serial/RS485 Converter for interfacing 
 
 The device can be used as a 
 
-  - **USB to RS485 Converter*** [A,B,Ground] (half Duplex)
+  - **USB to RS485 Converter** [A,B,Ground] (half Duplex)
   - **USB to Serial Converter** (TTL 5V or 3.3V logic ) 
   - **RS485 breakout board for your Microcontroller** (Arduino,MSP430,Raspberry Pi etc)
 
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+## Sample Sourcecode
+
+![PC to Microcontroller RS485 communication](https://www.xanthium.in/sites/default/files/site-images/atmega328p-rs485-pc-comm-tutorial/atmega328-pc-rs485-transmission.png)
+
 Open source sample software code in 
+
 - **C**
 - **C#**
 - **Python** 
 
-to develop your own RS485 communication Protocol. 
+to develop your own RS485 communication Protocol on the **PC side**.
+
+Embedded C code for
+
+ - **[ATmega328](https://www.xanthium.in/atmel-microchip-avr-atmega328p-rs485-communication-with-computer-tutorial-for-beginners)**
+ - **MSP430G2553**(TI Launchpad)
+
+on the Microcontroller side.
 
 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
