@@ -1,0 +1,18 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+# SharpDevelop 5.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "USB2SERIAL_RS485_Write", "USB2SERIAL_RS485_Write\USB2SERIAL_RS485_Write.csproj", "{35AB33FE-6835-4746-A1E4-7492BF7E7745}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{35AB33FE-6835-4746-A1E4-7492BF7E7745}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{35AB33FE-6835-4746-A1E4-7492BF7E7745}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{35AB33FE-6835-4746-A1E4-7492BF7E7745}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{35AB33FE-6835-4746-A1E4-7492BF7E7745}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

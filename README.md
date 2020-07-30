@@ -28,7 +28,17 @@ to develop your own RS485 communication Protocol.
 
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+## Block Diagram
+
+ - ![Block Diagram](https://www.xanthium.in/sites/default/files/site-images/usb2rs485-v2-2-product-page/ft232-usb-to-rs485-programming-mac-linux-win.jpg)
+ - **Circuit diagram** available in the Repo.
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 ## Online Tutorials
+
+- [RS485 communication from ATmega328p microcontroller to PC Tutorial](https://www.xanthium.in/atmel-microchip-avr-atmega328p-rs485-communication-with-computer-tutorial-for-beginners)
+- 
 
 
 
