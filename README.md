@@ -18,7 +18,7 @@ Open source sample software code in
 
 to develop your own RS485 communication Protocol. 
 
-Device supports 5 Pin RS485 Port ,A,B,GND,GND,+5V out.
+
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
