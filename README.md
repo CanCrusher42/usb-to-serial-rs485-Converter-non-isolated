@@ -12,6 +12,21 @@ The device can be used as a
   - **USB to RS485 Converter** [A,B,Ground] (half Duplex)
   - **USB to Serial Converter** (TTL 5V or 3.3V logic ) 
   - **RS485 breakout board for your Microcontroller** (Arduino,MSP430,Raspberry Pi etc)
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+##Note
+
+- Ignore this, if you are developing your own RS485 communication code from scratch or using our codes.
+
+- If you are **using an existing RS485 communication software(closed source,binary exe)**,Please note that our USB to RS485 converter uses **RTS and DTR signals to control ~RE and DE pins** to control RS485 communication direction.Please refer to the below block diagram or Circuit.Make sure that your software binary uses the same pins to control the direction.
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+## Block Diagram
+
+ - ![Block Diagram](https://www.xanthium.in/sites/default/files/site-images/usb2rs485-v2-2-product-page/ft232-usb-to-rs485-programming-mac-linux-win.jpg)
+ - **Circuit diagram** available in the Repo.
 
 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -29,7 +44,7 @@ to develop your own RS485 communication Protocol on the **PC side**.
 
 Embedded C code for
 
- - **[ATmega328](https://www.xanthium.in/atmel-microchip-avr-atmega328p-rs485-communication-with-computer-tutorial-for-beginners)**
+ - **[ATmega328P (Seperate Repo)](https://www.xanthium.in/atmel-microchip-avr-atmega328p-rs485-communication-with-computer-tutorial-for-beginners)**
  - **MSP430G2553**(TI Launchpad)
 
 on the Microcontroller side.
@@ -39,13 +54,6 @@ on the Microcontroller side.
 ## Online Website
 
 - Visit our website to [buy USB to Serial/RS485 Converter](https://www.xanthium.in/ft232-based-usb-to-serial-rs485-converter-industrial-scientific-applications)
-
----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-## Block Diagram
-
- - ![Block Diagram](https://www.xanthium.in/sites/default/files/site-images/usb2rs485-v2-2-product-page/ft232-usb-to-rs485-programming-mac-linux-win.jpg)
- - **Circuit diagram** available in the Repo.
 
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
