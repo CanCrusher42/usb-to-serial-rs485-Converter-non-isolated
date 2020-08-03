@@ -33,6 +33,17 @@ The device can be used as a
 
 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+## Required Device Drivers
+
+The USB to RS485 converter uses the popular **FT232RL** chip from FTDI which is widely supported.The drivers can be easily downloaded from **FTDI website**.
+
+ - [Download FTDI Drivers for Windows](https://www.ftdichip.com/Drivers/VCP.htm)
+
+In Linux ,the drivers are already integrated into the kernel.
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 ## Sample Sourcecode
 
 ![PC to Microcontroller RS485 communication](https://www.xanthium.in/sites/default/files/site-images/atmega328p-rs485-pc-comm-tutorial/atmega328-pc-rs485-transmission.png)
