@@ -51,10 +51,23 @@ on the Microcontroller side.
 
 ## Online Tutorials
 
+### RS485 Communication Tutorials
+
 - [RS485 communication from ATmega328p microcontroller to PC Tutorial](https://www.xanthium.in/atmel-microchip-avr-atmega328p-rs485-communication-with-computer-tutorial-for-beginners)
 - [RS485 communication from MSP430G2553 microcontroller to PC Tutorial](https://www.xanthium.in/RS485-communication-using-MAX485-and-MSP430-Launchpad)
 
 - [Python RS485 communication between PC and Microcontroller](https://www.xanthium.in/cross-platform-rs485-programming-using-python-usb-to-rs485-converter-and-pc)
 - [Cross Platform RS485 Communication using USB to RS485 Converter in C](https://www.xanthium.in/Cross-Platform-RS485-Communication-using-USB-to-RS485-converter)
+
+
+
+### Serial Communication Tutorials
+
+ - [Serial Port Programming using Win32 API (native API's)](https://www.xanthium.in/Serial-Port-Programming-using-Win32-API)
+ - [Serial Port Programming on Linux using termios and ioctl() (native API's)](https://www.xanthium.in/Serial-Port-Programming-on-Linux)
+ - [Cross Platform serial communication using Python (PySerial)](https://www.xanthium.in/Cross-Platform-serial-communication-using-Python-and-PySerial)
+ - [Serial Programming using C Sharp (C#) on Windows (.NET Framework)](https://www.xanthium.in/Serial-Programming-using-Csharp-on-Windows)
+ - [Serial Port Programming using Visual Basic.Net on Windows(.Net Framework)](https://www.xanthium.in/serial-port-programming-visual-basic-dotnet-for-embedded-developers)
+ - [Serial Programming using C Sharp (C#) on Linux using Mono Framework](https://www.xanthium.in/Serial-Programming-using-Mono-and-CSharp-on-Linux)
 
 
