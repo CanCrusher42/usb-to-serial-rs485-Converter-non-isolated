@@ -14,7 +14,7 @@ The device can be used as a
   - **RS485 breakout board for your Microcontroller** (Arduino,MSP430,Raspberry Pi etc)
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-##Note
+## Note
 
 - Ignore this, if you are developing your own RS485 communication code from scratch or using our codes.
 
