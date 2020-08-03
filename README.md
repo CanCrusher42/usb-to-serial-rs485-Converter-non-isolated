@@ -20,7 +20,8 @@ The device can be used as a
 
 - If you are **using an existing RS485 communication software(closed source,binary exe)**.
 	- Please note that our USB to RS485 converter uses **RTS and DTR signals to control ~RE and DE pins** to control RS485 communication direction.
-	- Please refer to the below block diagram or Circuit.Make sure that your software binary uses the same pins to control the direction.
+	- Please refer to the below **block diagram or Circuit**.
+	- Make sure that your software binary uses the same pins to control the direction.
 
 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
