@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="USB2SERIAL_RS485_Read_W32.c">
+    <ClCompile Include="SerialRx.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

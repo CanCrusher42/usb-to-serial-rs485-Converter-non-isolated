@@ -72,7 +72,90 @@
 
 	#include <Windows.h>
 	#include <stdio.h>
-#include <stdint.h>	
+	#include <stdlib.h>
+	#include <stdint.h>	
+	#include <stdbool.h>
+#include <dos.h>
+
+void PrintHexBuffer(uint8_t* buffer, int bufferSize)
+{
+	for (int i = 0; i < bufferSize; i++)
+	{
+		if (i < (bufferSize - 1))
+			printf("0x%02x, ", buffer[i]);
+		else
+			printf("0x%02x", buffer[i]);
+	}
+}
+void ResetAndStartCapture(HANDLE hComm)
+{
+	uint8_t   lpBuffer[5];		       // lpBuffer should be  char or byte array, otherwise write wil fail
+	DWORD  dNoOFBytestoWrite;              // No of bytes to write into the port
+	DWORD  dNoOfBytesWritten = 0;          // No of bytes written to the port
+	BOOL  Status;                          // Status of the various operations 
+	DWORD dwEventMask;                     // Event mask to trigger
+	uint8_t tempChar[20];
+	DWORD NoBytesRecieved;
+
+	lpBuffer[0] = 0x25;  0xA5;
+	lpBuffer[1] = 0x40;
+	lpBuffer[2] = 0x0;
+
+	dNoOFBytestoWrite = 1; // Calculating the no of bytes to write into the port
+
+	bool success = PurgeComm(hComm,PURGE_RXCLEAR);
+	printf("\n\n\nPurge Status = %d \n", success);
+
+	Status = WriteFile(hComm,               // Handle to the Serialport
+		lpBuffer,            // Data to be written to the port 
+		dNoOFBytestoWrite,   // No of bytes to write into the port
+		&dNoOfBytesWritten,  // No of bytes written to the port
+		NULL);
+
+
+
+
+	Sleep(20);
+
+	lpBuffer[0] = 0xA5;
+	lpBuffer[1] = 0x20;
+	lpBuffer[2] = 0x0;
+
+	dNoOFBytestoWrite = 2; // Calculating the no of bytes to write into the port
+
+	success = PurgeComm(hComm, PURGE_RXCLEAR);
+	printf("\n\n\nPurge Status = %d \n", success);
+
+	Status = WriteFile(hComm,               // Handle to the Serialport
+		lpBuffer,            // Data to be written to the port 
+		dNoOFBytestoWrite,   // No of bytes to write into the port
+		&dNoOfBytesWritten,  // No of bytes written to the port
+		NULL);
+
+	if (Status == TRUE)
+		printf("\n\n    0x%02x 0x%02x - Written to Com Port", (uint8_t)lpBuffer[0], (uint8_t)lpBuffer[1]);
+	else
+		printf("\n\n   Error %d in Writing to Serial Port", GetLastError());
+
+	printf("\n\n    Waiting for Data Reception");
+
+	Status = WaitCommEvent(hComm, &dwEventMask, NULL); //Wait for the character to be received
+
+	printf("\n\n    Characters Received");
+	Status = ReadFile(hComm, &tempChar[0], 50, &NoBytesRecieved, NULL);
+	if (Status == FALSE)
+	{
+		printf("\n    Error! in Setting WaitCommEvent()");
+	}
+	else
+	{
+		PrintHexBuffer(tempChar, NoBytesRecieved);
+		printf("\n");
+	}
+
+
+};
+
 	void main(void)
 		{
 			HANDLE hComm;                          // Handle to the Serial port
@@ -81,7 +164,7 @@
 			BOOL  Status;                          // Status of the various operations 
 			DWORD dwEventMask;                     // Event mask to trigger
 			char  TempChar[10];                        // Temperory Character
-			char  SerialBuffer[1024];               // Buffer Containing Rxed Data
+			char  SerialBuffer[4096];               // Buffer Containing Rxed Data
 			DWORD NoBytesRecieved;                 // Bytes read by ReadFile()
 
 			uint8_t   lpBuffer[5];		       // lpBuffer should be  char or byte array, otherwise write wil fail
@@ -193,8 +276,8 @@
 			else
 				printf("\n   Error! in EscapeCommFunction(hComm, SETRTS)");
 
-	
-
+			ResetAndStartCapture(hComm);
+/*
 			lpBuffer[0] = 0xA5;
 			lpBuffer[1] = 0x20;
 			lpBuffer[2] = 0x0;
@@ -223,35 +306,62 @@
 
 			/*-------------------------- Program will Wait here till a Character is received ------------------------*/				
 			int loops = 0;
+			bool startCapture = false;
 			if (Status == FALSE)
 				{
 					printf("\n    Error! in Setting WaitCommEvent()");
 				}
 			else //If  WaitCommEvent()==True Read the RXed data using ReadFile();
 				{
-					printf("\n\n    Characters Received");
+				//	printf("\n\n    Characters Received");
+				//	Status = ReadFile(hComm, &TempChar[0], 7, &NoBytesRecieved, NULL);
 					do
 						{
 							//printf("\n ReadFile();");
 							//Status = ReadFile(hComm, &TempChar[0], sizeof(TempChar), &NoBytesRecieved, NULL);
-							Status = ReadFile(hComm, &TempChar[0], 3, &NoBytesRecieved, NULL);
-							printf("%d ", NoBytesRecieved);
+							Status = ReadFile(hComm, &TempChar[0], 1, &NoBytesRecieved, NULL);
+							//printf("%d ", NoBytesRecieved);
+
 							//printf("Status -> %d", Status);
 							for (int h=0; h< NoBytesRecieved; h++)
 								SerialBuffer[i+h] = TempChar[h];
 							//printf(" SerialChar -> %c", TempChar);
 							//printf(" i =%d", i);
 							i+=NoBytesRecieved;
-					} while (i < 512);// (NoBytesRecieved > 0);
+							
+							if (startCapture == false)
+							{
+								if (i == 7)
+								{
+									if (    (((SerialBuffer[0] & 3) == 1) && ((SerialBuffer[1] & 1) == 1)) &&
+										    (((SerialBuffer[5] & 3) == 2) && ((SerialBuffer[6] & 1) == 1)) )
+									{
+										startCapture = true;
+									}
+									else
+									{
+										SerialBuffer[0] = SerialBuffer[1];
+										SerialBuffer[1] = SerialBuffer[2];
+										SerialBuffer[2] = SerialBuffer[3];
+										SerialBuffer[3] = SerialBuffer[4];
+										SerialBuffer[4] = SerialBuffer[5];
+										SerialBuffer[5] = SerialBuffer[6];
+										i--;
+									}
+								}
+							}
+					} while (i < 2000);// (NoBytesRecieved > 0);
 
 					printf("\n reached here\n\n\n");
 
 					/*------------Printing the RXed String to Console----------------------*/
 
+					system("cls");
+
 					printf("\n\n    ");
 					for (int j = 0; j < i - 1; j++)		// j < i-1 to remove the dupliated last character
 					{
-						if ((j % 40) == 0)
+						if ((j % 20) == 0)
 							printf("\n");
 
 						printf("0x%02x, ", (uint8_t)SerialBuffer[j]);
