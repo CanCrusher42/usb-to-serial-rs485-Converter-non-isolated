@@ -78,7 +78,19 @@
 #include <dos.h>
 
 HANDLE hComm;
-char  SerialBuffer[4096];               // Buffer Containing Rxed Data
+
+#pragma pack(1)
+struct sample_struct {
+	uint8_t quality;
+	uint16_t angle;
+	uint16_t distance;
+};
+
+#define SERIAL_BUFFER_SIZE 4096
+#define LINE_BUFFER_SIZE 512
+
+char  SerialBuffer[SERIAL_BUFFER_SIZE];               // Buffer Containing Rxed Data
+struct sample_struct lineBuffer[LINE_BUFFER_SIZE];
 
 
 void PrintHexBuffer(uint8_t* buffer, int bufferSize)
@@ -91,6 +103,129 @@ void PrintHexBuffer(uint8_t* buffer, int bufferSize)
 			printf("0x%02x", buffer[i]);
 	}
 }
+
+void PrintRawBuffer(uint8_t* buffer, int numChars)
+{
+	/*------------Printing the RXed String to Console----------------------*/
+
+	
+
+
+	for (int j = 0; j < numChars - 1; j++)		// j < i-1 to remove the dupliated last character
+	{
+		if (((j % 5) == 0) && ((buffer[j] & 1) == 1))
+			printf("* %d \n", j);
+		if ((j % 20) == 0)
+			printf("\n");
+
+		printf("0x%02x, ", (uint8_t)buffer[j]);
+
+	}
+
+}
+
+void DisplayLine(struct sample_struct sampleLine[LINE_BUFFER_SIZE],int numSamples,  uint16_t startAngle, uint16_t endAngle, uint8_t minQuality, uint16_t maxHeight)
+{
+	char displayLine[365];
+	uint16_t width = endAngle - startAngle;
+	if (width > 360)
+		width = 360;
+	char barChar = '#';
+
+	// get tallest bar
+	uint16_t highest = 0;  sampleLine[0].distance;
+	// ERROR THIS SHOULD CHECK BE CHECKING BETWEEN THE TARGETS
+	for (uint16_t check = startAngle; check < endAngle; check++)
+	{
+		if (sampleLine[check].distance > highest)
+			highest = sampleLine[check].distance;
+	}
+
+	int scale = highest / maxHeight;
+	for (uint16_t rows = maxHeight; rows >= 1; rows--)
+	{
+		for (uint16_t cols = startAngle; cols < endAngle; cols++)
+		{
+			if (sampleLine[cols].distance >= (rows*scale))
+				displayLine[cols-startAngle] = barChar;
+			else
+				displayLine[cols-startAngle] = ' ';
+		}
+		displayLine[width] = 0;
+		printf("%s\n", displayLine);
+	}
+
+	
+	for (int loc = 2; loc >= 0; loc--)
+	{
+		unsigned int power=0;
+		if (loc == 2) power = 100;
+		if (loc == 1) power = 10;
+
+		for (uint16_t cols = startAngle; cols < endAngle; cols++)
+		{
+			if (cols >= power)
+				if (power > 0)
+				{
+					displayLine[cols] = '0' + ((cols / power) % power);
+				}
+				else
+				{
+					displayLine[cols] = '0' + (cols  % 10);
+				}
+			else
+				displayLine[cols] = ' ';
+		}
+		displayLine[width] = 0;
+		printf("%s\n", displayLine);
+
+	}
+	
+
+}
+
+
+
+int TransferArrayToLine(uint8_t* rawBuffer, struct sample_struct* lineBuffer)
+{
+	int lineSize = 0;
+	int charCount = 0;
+
+	int index;
+
+	while (lineSize == 0)
+	{
+		// Use angle as index into array of 360 items
+		index = ((rawBuffer[charCount + 1] >> 1) + (((uint16_t)rawBuffer[charCount + 2]) << 7) ) >> 6;
+		lineBuffer[index].quality  = rawBuffer[charCount] >> 2;
+
+		//lineBuffer[index].angle    = (rawBuffer[charCount + 1] >> 1) + (((uint16_t)rawBuffer[charCount + 2]) << 7);
+		lineBuffer[index].angle  = rawBuffer[charCount + 2];
+		lineBuffer[index].angle = (lineBuffer[index].angle << 7) | (rawBuffer[charCount + 1] >> 1);
+		lineBuffer[index].distance = (((uint16_t)rawBuffer[charCount + 4]) << 8) + rawBuffer[charCount + 3];
+		lineBuffer[index].distance = lineBuffer[index].distance / 100;
+
+		// look for start of next line
+		if ((charCount > 0) & ((rawBuffer[charCount] & 3) == 1))
+			lineSize++;
+		else
+			charCount += 5;
+	}
+	return charCount;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 bool OpenLpLidar(/*HANDLE hComm*/)
 {
@@ -261,7 +396,7 @@ void ResetAndStartCapture(HANDLE hComm)
 
 };
 
-int getScanLineOfData(HANDLE hComm)
+int getScanLineOfData(HANDLE hComm, int numChars)
 {
 	BOOL  Status;                          // Status of the various operations 
 	DWORD dwEventMask;                     // Event mask to trigger
@@ -289,10 +424,8 @@ int getScanLineOfData(HANDLE hComm)
 	{
 		printf("\n    Error! in Setting WaitCommEvent()");
 	}
-	else //If  WaitCommEvent()==True Read the RXed data using ReadFile();
+	else 
 	{
-		//	printf("\n\n    Characters Received");
-		//	Status = ReadFile(hComm, &TempChar[0], 7, &NoBytesRecieved, NULL);
 		startCapture = false;
 		dNoOFBytestoRead = 1;
 		do
@@ -302,13 +435,16 @@ int getScanLineOfData(HANDLE hComm)
 			for (DWORD h = 0; h < NoBytesRecieved; h++)
 				SerialBuffer[i + h] = TempChar[h];
 			i += NoBytesRecieved;
-#define NUM_SYNCS 6
+#define NUM_SYNCS 7
 			if (startCapture == false)
 			{
+				// Start checking once we have received at least the number of samples needed to sync into the data stream
 				if (i == ((NUM_SYNCS * 5) - 3))
 				{
+					// Look for the Start Scan seqeunce
 					startCapture = (((SerialBuffer[0] & 3) == 1) && ((SerialBuffer[1] & 1) == 1));
 
+					// followed by the rest of the samples being normal.
 					for (int sync_num = 5; (sync_num < (NUM_SYNCS * 3) && startCapture); sync_num += 5)
 					{
 						startCapture = startCapture && (((SerialBuffer[sync_num] & 3) == 2) && ((SerialBuffer[sync_num + 1] & 1) == 1));
@@ -322,25 +458,9 @@ int getScanLineOfData(HANDLE hComm)
 					}
 				}
 			}
-		} while (i < 2000);// (NoBytesRecieved > 0);
+		} while (i < numChars);// (NoBytesRecieved > 0);
 
 		printf("\n reached here\n\n\n");
-
-		/*------------Printing the RXed String to Console----------------------*/
-
-		system("cls");
-
-		printf("\n\n    ");
-		for (int j = 0; j < i - 1; j++)		// j < i-1 to remove the dupliated last character
-		{
-			if (((j % 5) == 0) && ((SerialBuffer[j] & 1) == 1))
-				printf("* %d \n",j);
-			if ((j % 20) == 0)
-				printf("\n");
-
-			printf("0x%02x, ", (uint8_t)SerialBuffer[j]);
-
-		}
 
 	}
 
@@ -355,8 +475,16 @@ int getScanLineOfData(HANDLE hComm)
 
 
 			ResetAndStartCapture(hComm);
+			getScanLineOfData(hComm,1500);
+			system("cls");
+			PrintRawBuffer(SerialBuffer, 1500);
 
-			getScanLineOfData(hComm);
+			int bytesInLine = TransferArrayToLine(SerialBuffer, lineBuffer);
+
+			system("cls");
+			DisplayLine(lineBuffer, bytesInLine / 5, 0, 180, 80, 50);
+
+
 			CloseHandle(hComm);//Closing the Serial Port
 			printf("\n +==========================================+\n");
 			_getch();
