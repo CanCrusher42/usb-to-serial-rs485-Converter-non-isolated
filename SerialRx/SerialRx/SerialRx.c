@@ -124,7 +124,7 @@ void PrintRawBuffer(uint8_t* buffer, int numChars)
 
 }
 
-void DisplayLine(struct sample_struct sampleLine[LINE_BUFFER_SIZE],int numSamples,  uint16_t startAngle, uint16_t endAngle, uint8_t minQuality, uint16_t maxHeight)
+void DisplayLineDistance(struct sample_struct sampleLine[LINE_BUFFER_SIZE],int numSamples,  uint16_t startAngle, uint16_t endAngle, uint8_t minQuality, uint16_t maxHeight)
 {
 	char displayLine[365];
 	uint16_t width = endAngle - startAngle;
@@ -150,12 +150,23 @@ void DisplayLine(struct sample_struct sampleLine[LINE_BUFFER_SIZE],int numSample
 				displayLine[cols-startAngle] = barChar;
 			else
 				displayLine[cols-startAngle] = ' ';
+
+			if ((rows == 1) && (sampleLine[cols].quality<3))
+				displayLine[cols-startAngle] = '?';
 		}
+		
 		displayLine[width] = 0;
+		printf("%05d|", rows * scale);
 		printf("%s\n", displayLine);
 	}
 
+	printf("%s","      ");
+	for (int loc = startAngle; loc < endAngle; loc++)
+		printf("%c",'-');
 	
+	printf("\n");
+
+
 	for (int loc = 2; loc >= 0; loc--)
 	{
 		unsigned int power=0;
@@ -165,7 +176,11 @@ void DisplayLine(struct sample_struct sampleLine[LINE_BUFFER_SIZE],int numSample
 		for (uint16_t cols = startAngle; cols < endAngle; cols++)
 		{
 			if (cols >= power)
-				if (power > 0)
+				if (power == 100)
+				{
+					displayLine[cols] = '0' + ((cols / power) );
+				}
+				else if (power == 10)
 				{
 					displayLine[cols] = '0' + ((cols / power) % power);
 				}
@@ -174,16 +189,86 @@ void DisplayLine(struct sample_struct sampleLine[LINE_BUFFER_SIZE],int numSample
 					displayLine[cols] = '0' + (cols  % 10);
 				}
 			else
-				displayLine[cols] = ' ';
+				displayLine[cols] = '0';
 		}
 		displayLine[width] = 0;
-		printf("%s\n", displayLine);
+		printf("      %s\n", displayLine);
 
 	}
 	
 
 }
 
+void DisplayLineQuality(struct sample_struct sampleLine[LINE_BUFFER_SIZE], int numSamples, uint16_t startAngle, uint16_t endAngle, uint8_t minQuality, uint16_t maxHeight)
+{
+	char displayLine[365];
+	uint16_t width = endAngle - startAngle;
+	if (width > 360)
+		width = 360;
+	char barChar = '#';
+
+	// get tallest bar
+	uint16_t highest = 0;  sampleLine[0].distance;
+	// ERROR THIS SHOULD CHECK BE CHECKING BETWEEN THE TARGETS
+	for (uint16_t check = startAngle; check < endAngle; check++)
+	{
+		if (sampleLine[check].quality > highest)
+			highest = sampleLine[check].quality;
+	}
+
+	int scale = highest / maxHeight;
+	for (uint16_t rows = maxHeight; rows >= 1; rows--)
+	{
+		for (uint16_t cols = startAngle; cols < endAngle; cols++)
+		{
+			if (sampleLine[cols].quality >= (rows * scale))
+				displayLine[cols - startAngle] = barChar;
+			else
+				displayLine[cols - startAngle] = ' ';
+		}
+		displayLine[width] = 0;
+		printf("%05d|", rows * scale);
+		printf("%s\n", displayLine);
+	}
+
+	printf("%s", "      ");
+	for (int loc = startAngle; loc < endAngle; loc++)
+		printf("%c", '-');
+
+	printf("\n");
+
+
+	for (int loc = 2; loc >= 0; loc--)
+	{
+		unsigned int power = 0;
+		if (loc == 2) power = 100;
+		if (loc == 1) power = 10;
+
+		for (uint16_t cols = startAngle; cols < endAngle; cols++)
+		{
+			if (cols >= power)
+				if (power == 100)
+				{
+					displayLine[cols] = '0' + ((cols / power));
+				}
+				else if (power == 10)
+				{
+					displayLine[cols] = '0' + ((cols / power) % power);
+				}
+				else
+				{
+					displayLine[cols] = '0' + (cols % 10);
+				}
+			else
+				displayLine[cols] = '0';
+		}
+		displayLine[width] = 0;
+		printf("      %s\n", displayLine);
+
+	}
+
+
+}
 
 
 int TransferArrayToLine(uint8_t* rawBuffer, struct sample_struct* lineBuffer)
@@ -197,13 +282,16 @@ int TransferArrayToLine(uint8_t* rawBuffer, struct sample_struct* lineBuffer)
 	{
 		// Use angle as index into array of 360 items
 		index = ((rawBuffer[charCount + 1] >> 1) + (((uint16_t)rawBuffer[charCount + 2]) << 7) ) >> 6;
+		
 		lineBuffer[index].quality  = rawBuffer[charCount] >> 2;
 
 		//lineBuffer[index].angle    = (rawBuffer[charCount + 1] >> 1) + (((uint16_t)rawBuffer[charCount + 2]) << 7);
+	
 		lineBuffer[index].angle  = rawBuffer[charCount + 2];
 		lineBuffer[index].angle = (lineBuffer[index].angle << 7) | (rawBuffer[charCount + 1] >> 1);
+
 		lineBuffer[index].distance = (((uint16_t)rawBuffer[charCount + 4]) << 8) + rawBuffer[charCount + 3];
-		lineBuffer[index].distance = lineBuffer[index].distance / 100;
+		lineBuffer[index].distance = lineBuffer[index].distance / 4;  // Sensor is /4 mm
 
 		// look for start of next line
 		if ((charCount > 0) & ((rawBuffer[charCount] & 3) == 1))
@@ -482,8 +570,11 @@ int getScanLineOfData(HANDLE hComm, int numChars)
 			int bytesInLine = TransferArrayToLine(SerialBuffer, lineBuffer);
 
 			system("cls");
-			DisplayLine(lineBuffer, bytesInLine / 5, 0, 180, 80, 50);
+			DisplayLineQuality(lineBuffer, bytesInLine / 5, 0, 180, 80, 10);
 
+		//	system("cls");
+			printf("\n\n");
+			DisplayLineDistance(lineBuffer, bytesInLine / 5, 0, 180, 80, 50);
 
 			CloseHandle(hComm);//Closing the Serial Port
 			printf("\n +==========================================+\n");
