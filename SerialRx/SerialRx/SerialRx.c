@@ -77,6 +77,10 @@
 	#include <stdbool.h>
 #include <dos.h>
 
+HANDLE hComm;
+char  SerialBuffer[4096];               // Buffer Containing Rxed Data
+
+
 void PrintHexBuffer(uint8_t* buffer, int bufferSize)
 {
 	for (int i = 0; i < bufferSize; i++)
@@ -87,6 +91,107 @@ void PrintHexBuffer(uint8_t* buffer, int bufferSize)
 			printf("0x%02x", buffer[i]);
 	}
 }
+
+bool OpenLpLidar(/*HANDLE hComm*/)
+{
+//	HANDLE hComm;                          // Handle to the Serial port
+	TCHAR* pcCommPort = TEXT("COM5");
+	BOOL  Status;                          // Status of the various operations 
+	DWORD  dNoOfBytesWritten = 0;          // No of bytes written to the port
+	BOOL match = false;
+
+	int i = 0;
+
+	printf("\n\n +==========================================+");
+	printf("\n |    RS485 Mode - Reception (Win32 API)    |");
+	printf("\n +==========================================+\n");
+	/*---------------------------------- Opening the Serial Port -------------------------------------------*/
+
+	hComm = CreateFile(pcCommPort /* ComPortName*/,                  // Name of the Port to be Opened
+		GENERIC_READ | GENERIC_WRITE, // Read/Write Access
+		0,                            // No Sharing, ports cant be shared
+		NULL,                         // No Security
+		OPEN_EXISTING,                // Open existing port only
+		0,                            // Non Overlapped I/O
+		NULL);                        // Null for Comm Devices
+
+	if (hComm == INVALID_HANDLE_VALUE)
+	{
+		printf("\n    Error! - Port %S can't be opened\n", pcCommPort);
+		return false;
+	}
+	else
+		printf("\n    Port %S Opened\n ", pcCommPort);
+
+	/*------------------------------- Setting the Parameters for the SerialPort ------------------------------*/
+
+	DCB dcbSerialParams = { 0 };                         // Initializing DCB structure
+	dcbSerialParams.DCBlength = sizeof(dcbSerialParams);
+
+	Status = GetCommState(hComm, &dcbSerialParams);      //retreives  the current settings
+
+	if (Status == FALSE)
+	{
+		printf("\n    Error! in GetCommState()");
+		return Status;
+	}
+
+	dcbSerialParams.BaudRate = CBR_115200;      // Setting BaudRate = 9600
+	dcbSerialParams.ByteSize = 8;             // Setting ByteSize = 8
+	dcbSerialParams.StopBits = ONESTOPBIT;    // Setting StopBits = 1
+	dcbSerialParams.Parity = NOPARITY;        // Setting Parity = None 
+	dcbSerialParams.fDtrControl = 0;          // Enable DTR for the motor
+	dcbSerialParams.fRtsControl = 0;//.fDtrControl = 0;          // Enable DTR for the motor
+
+	Status = SetCommState(hComm, &dcbSerialParams);  //Configuring the port according to settings in DCB 
+
+	if (Status == FALSE)
+	{
+		printf("\n    Error! in Setting DCB Structure");
+		return Status;
+	}
+	else //If Successfull display the contents of the DCB Structure
+	{
+		printf("\n\n    Setting DCB Structure Successfull\n");
+		printf("\n       Baudrate = %d", dcbSerialParams.BaudRate);
+		printf("\n       ByteSize = %d", dcbSerialParams.ByteSize);
+		printf("\n       StopBits = %d", dcbSerialParams.StopBits);
+		printf("\n       Parity   = %d", dcbSerialParams.Parity);
+		printf("\n       fDtrCont = %d", dcbSerialParams.fDtrControl);
+		printf("\n       fRtsCont = %d", dcbSerialParams.fRtsControl);
+
+	}
+
+	/*------------------------------------ Setting Timeouts --------------------------------------------------*/
+
+	COMMTIMEOUTS timeouts = { 0 };
+	timeouts.ReadIntervalTimeout = 50;
+	timeouts.ReadTotalTimeoutConstant = 50;
+	timeouts.ReadTotalTimeoutMultiplier = 10;
+	timeouts.WriteTotalTimeoutConstant = 50;
+	timeouts.WriteTotalTimeoutMultiplier = 10;
+
+	if (SetCommTimeouts(hComm, &timeouts) == FALSE)
+	{
+		printf("\n\n    Error! in Setting Time Outs");
+		return Status;
+	}
+	else
+		printf("\n\n    Setting Serial Port Timeouts Successfull");
+
+	/*------------------------------------ Setting Receive Mask ----------------------------------------------*/
+
+	Status = SetCommMask(hComm, EV_RXCHAR); //Configure Windows to Monitor the serial device for Character Reception
+
+	if (Status == FALSE)
+		printf("\n\n    Error! in Setting CommMask");
+	else
+		printf("\n\n    Setting CommMask successfull");
+
+	return Status;
+
+}
+
 void ResetAndStartCapture(HANDLE hComm)
 {
 	uint8_t   lpBuffer[5];		       // lpBuffer should be  char or byte array, otherwise write wil fail
@@ -94,7 +199,7 @@ void ResetAndStartCapture(HANDLE hComm)
 	DWORD  dNoOfBytesWritten = 0;          // No of bytes written to the port
 	BOOL  Status;                          // Status of the various operations 
 	DWORD dwEventMask;                     // Event mask to trigger
-	uint8_t tempChar[20];
+	uint8_t tempChar[100];
 	DWORD NoBytesRecieved;
 
 	lpBuffer[0] = 0x25;  0xA5;
@@ -156,221 +261,103 @@ void ResetAndStartCapture(HANDLE hComm)
 
 };
 
+int getScanLineOfData(HANDLE hComm)
+{
+	BOOL  Status;                          // Status of the various operations 
+	DWORD dwEventMask;                     // Event mask to trigger
+	char  TempChar[10];                        // Temperory Character
+
+	DWORD NoBytesRecieved;                 // Bytes read by ReadFile()
+
+
+	DWORD  dNoOFBytestoRead;              // No of bytes to write into the port
+	DWORD  dNoOfBytesWritten = 0;          // No of bytes written to the port
+	BOOL match = false;
+
+	int i = 0;
+
+	printf("\n\n    Waiting for Data Reception");
+
+	Status = WaitCommEvent(hComm, &dwEventMask, NULL); //Wait for the character to be received
+
+
+
+	/*-------------------------- Program will Wait here till a Character is received ------------------------*/
+	int loops = 0;
+	bool startCapture = false;
+	if (Status == FALSE)
+	{
+		printf("\n    Error! in Setting WaitCommEvent()");
+	}
+	else //If  WaitCommEvent()==True Read the RXed data using ReadFile();
+	{
+		//	printf("\n\n    Characters Received");
+		//	Status = ReadFile(hComm, &TempChar[0], 7, &NoBytesRecieved, NULL);
+		startCapture = false;
+		dNoOFBytestoRead = 1;
+		do
+		{
+			Status = ReadFile(hComm, &TempChar[0], 1, &NoBytesRecieved, NULL);
+
+			for (DWORD h = 0; h < NoBytesRecieved; h++)
+				SerialBuffer[i + h] = TempChar[h];
+			i += NoBytesRecieved;
+#define NUM_SYNCS 6
+			if (startCapture == false)
+			{
+				if (i == ((NUM_SYNCS * 5) - 3))
+				{
+					startCapture = (((SerialBuffer[0] & 3) == 1) && ((SerialBuffer[1] & 1) == 1));
+
+					for (int sync_num = 5; (sync_num < (NUM_SYNCS * 3) && startCapture); sync_num += 5)
+					{
+						startCapture = startCapture && (((SerialBuffer[sync_num] & 3) == 2) && ((SerialBuffer[sync_num + 1] & 1) == 1));
+					}
+
+					if (startCapture == false)
+					{
+						for (int shift = 0; shift < ((NUM_SYNCS * 5) - 4)/*11*/; shift++)
+							SerialBuffer[shift] = SerialBuffer[shift + 1];
+						i--;
+					}
+				}
+			}
+		} while (i < 2000);// (NoBytesRecieved > 0);
+
+		printf("\n reached here\n\n\n");
+
+		/*------------Printing the RXed String to Console----------------------*/
+
+		system("cls");
+
+		printf("\n\n    ");
+		for (int j = 0; j < i - 1; j++)		// j < i-1 to remove the dupliated last character
+		{
+			if (((j % 5) == 0) && ((SerialBuffer[j] & 1) == 1))
+				printf("* %d \n",j);
+			if ((j % 20) == 0)
+				printf("\n");
+
+			printf("0x%02x, ", (uint8_t)SerialBuffer[j]);
+
+		}
+
+	}
+
+
+}
+
 	void main(void)
 		{
-			HANDLE hComm;                          // Handle to the Serial port
-			char  ComPortName[] = "\\\\.\\COM5";  // Name of the Serial port(May Change) to be opened,
-			TCHAR* pcCommPort = TEXT("COM5");
 			BOOL  Status;                          // Status of the various operations 
-			DWORD dwEventMask;                     // Event mask to trigger
-			char  TempChar[10];                        // Temperory Character
-			char  SerialBuffer[4096];               // Buffer Containing Rxed Data
-			DWORD NoBytesRecieved;                 // Bytes read by ReadFile()
 
-			uint8_t   lpBuffer[5];		       // lpBuffer should be  char or byte array, otherwise write wil fail
-			DWORD  dNoOFBytestoWrite;              // No of bytes to write into the port
-			DWORD  dNoOfBytesWritten = 0;          // No of bytes written to the port
+			Status = OpenLpLidar();
 
-
-			int i = 0;
-
-			printf("\n\n +==========================================+");
-			printf("\n |    RS485 Mode - Reception (Win32 API)    |");
-			printf("\n +==========================================+\n");
-			/*---------------------------------- Opening the Serial Port -------------------------------------------*/
-			
-			hComm = CreateFile(pcCommPort /* ComPortName*/,                  // Name of the Port to be Opened
-		                        GENERIC_READ | GENERIC_WRITE, // Read/Write Access
-								0,                            // No Sharing, ports cant be shared
-								NULL,                         // No Security
-							    OPEN_EXISTING,                // Open existing port only
-		                        0,                            // Non Overlapped I/O
-		                        NULL);                        // Null for Comm Devices
-
-			if (hComm == INVALID_HANDLE_VALUE)
-				printf("\n    Error! - Port %s can't be opened\n", pcCommPort);
-			else
-				printf("\n    Port %S Opened\n ", pcCommPort);
-
-			/*------------------------------- Setting the Parameters for the SerialPort ------------------------------*/
-			
-			DCB dcbSerialParams = { 0 };                         // Initializing DCB structure
-			dcbSerialParams.DCBlength = sizeof(dcbSerialParams);
-
-			Status = GetCommState(hComm, &dcbSerialParams);      //retreives  the current settings
-
-			if (Status == FALSE)
-				printf("\n    Error! in GetCommState()");
-
-			dcbSerialParams.BaudRate = CBR_115200;      // Setting BaudRate = 9600
-			dcbSerialParams.ByteSize = 8;             // Setting ByteSize = 8
-			dcbSerialParams.StopBits = ONESTOPBIT;    // Setting StopBits = 1
-			dcbSerialParams.Parity = NOPARITY;        // Setting Parity = None 
-			dcbSerialParams.fDtrControl = 0;          // Enable DTR for the motor
-			dcbSerialParams.fRtsControl = 0;//.fDtrControl = 0;          // Enable DTR for the motor
-			
-			Status = SetCommState(hComm, &dcbSerialParams);  //Configuring the port according to settings in DCB 
-
-			if (Status == FALSE)
-				{
-					printf("\n    Error! in Setting DCB Structure");
-				}
-			else //If Successfull display the contents of the DCB Structure
-				{
-					printf("\n\n    Setting DCB Structure Successfull\n");
-					printf("\n       Baudrate = %d", dcbSerialParams.BaudRate);
-					printf("\n       ByteSize = %d", dcbSerialParams.ByteSize);
-					printf("\n       StopBits = %d", dcbSerialParams.StopBits);
-					printf("\n       Parity   = %d", dcbSerialParams.Parity);
-					printf("\n       fDtrCont = %d", dcbSerialParams.fDtrControl);
-					printf("\n       fRtsCont = %d", dcbSerialParams.fRtsControl);
-
-				}
-
-			/*------------------------------------ Setting Timeouts --------------------------------------------------*/
-			
-			COMMTIMEOUTS timeouts = { 0 };
-			timeouts.ReadIntervalTimeout         = 50;
-			timeouts.ReadTotalTimeoutConstant    = 50;
-			timeouts.ReadTotalTimeoutMultiplier  = 10;
-			timeouts.WriteTotalTimeoutConstant   = 50;
-			timeouts.WriteTotalTimeoutMultiplier = 10;
-			
-			if (SetCommTimeouts(hComm, &timeouts) == FALSE)
-				printf("\n\n    Error! in Setting Time Outs");
-			else
-				printf("\n\n    Setting Serial Port Timeouts Successfull");
-
-			/*------------------------------------ Setting Receive Mask ----------------------------------------------*/
-			
-			Status = SetCommMask(hComm, EV_RXCHAR); //Configure Windows to Monitor the serial device for Character Reception
-	
-			if (Status == FALSE)
-				printf("\n\n    Error! in Setting CommMask");
-			else
-				printf("\n\n    Setting CommMask successfull");
-
-			/*------------------------- Putting MAX485 chip in USB2SERIAL in Receive Mode ----------------------------*/
-			//                                                                                                        //
-			//	----+			+-----------+              L  +-----------+                                           //
-			//		|			| 	    ~RTS| --------------> |~RE        |                                           //
-			//	 PC |<==========| FT232     |                 |   MAX485  +(A,B)<~~~~~~~~~~~~~~~Data in(RS485)        //
-			//	    |    USB    |       ~DTR| --------------> | DE        |        Twisted Pair                       //
-			//  ----+			+-----------+              L  +-----------+                                           //
-			//                                                                                                        //
-			//--------------------------------------------------------------------------------------------------------//
-			//RxMode - DE->Low,~RE -> Low
-
-			/*
-			Status = EscapeCommFunction(hComm, SETDTR);// SETDTR will make FT232 DTR-LOW (inverted),DE-LOW for Reception
-
-			if (Status == TRUE)
-				printf("\n\n    DE of MAX485 is Low (Receive Mode)");
-			else
-				printf("\n\n   Error! in EscapeCommFunction(hComm, SETDTR)");
-
-			Status = EscapeCommFunction(hComm, SETRTS);//SETRTS will make FT232 RTS-LOW(inverted),~RE-LOW for Reception
-			*/
-			if (Status == TRUE)
-				printf("\n   ~RE of MAX485 is Low (Receive Mode)");
-			else
-				printf("\n   Error! in EscapeCommFunction(hComm, SETRTS)");
 
 			ResetAndStartCapture(hComm);
-/*
-			lpBuffer[0] = 0xA5;
-			lpBuffer[1] = 0x20;
-			lpBuffer[2] = 0x0;
 
-			dNoOFBytestoWrite = 2; // Calculating the no of bytes to write into the port
-
-			Status = WriteFile(hComm,               // Handle to the Serialport
-				lpBuffer,            // Data to be written to the port 
-				dNoOFBytestoWrite,   // No of bytes to write into the port
-				&dNoOfBytesWritten,  // No of bytes written to the port
-				NULL);
-
-			if (Status == TRUE)
-				printf("\n\n    0x%02x 0x%02x - Written to %S", (uint8_t)lpBuffer[0], (uint8_t)lpBuffer[1], pcCommPort);
-			else
-				printf("\n\n   Error %d in Writing to Serial Port", GetLastError());
-
-
-			/*------------------------------------ Setting WaitComm() Event   ----------------------------------------*/
-
-			printf("\n\n    Waiting for Data Reception");
-
-			Status = WaitCommEvent(hComm, &dwEventMask, NULL); //Wait for the character to be received
-
-
-
-			/*-------------------------- Program will Wait here till a Character is received ------------------------*/				
-			int loops = 0;
-			bool startCapture = false;
-			if (Status == FALSE)
-				{
-					printf("\n    Error! in Setting WaitCommEvent()");
-				}
-			else //If  WaitCommEvent()==True Read the RXed data using ReadFile();
-				{
-				//	printf("\n\n    Characters Received");
-				//	Status = ReadFile(hComm, &TempChar[0], 7, &NoBytesRecieved, NULL);
-					do
-						{
-							//printf("\n ReadFile();");
-							//Status = ReadFile(hComm, &TempChar[0], sizeof(TempChar), &NoBytesRecieved, NULL);
-							Status = ReadFile(hComm, &TempChar[0], 1, &NoBytesRecieved, NULL);
-							//printf("%d ", NoBytesRecieved);
-
-							//printf("Status -> %d", Status);
-							for (int h=0; h< NoBytesRecieved; h++)
-								SerialBuffer[i+h] = TempChar[h];
-							//printf(" SerialChar -> %c", TempChar);
-							//printf(" i =%d", i);
-							i+=NoBytesRecieved;
-							
-							if (startCapture == false)
-							{
-								if (i == 7)
-								{
-									if (    (((SerialBuffer[0] & 3) == 1) && ((SerialBuffer[1] & 1) == 1)) &&
-										    (((SerialBuffer[5] & 3) == 2) && ((SerialBuffer[6] & 1) == 1)) )
-									{
-										startCapture = true;
-									}
-									else
-									{
-										SerialBuffer[0] = SerialBuffer[1];
-										SerialBuffer[1] = SerialBuffer[2];
-										SerialBuffer[2] = SerialBuffer[3];
-										SerialBuffer[3] = SerialBuffer[4];
-										SerialBuffer[4] = SerialBuffer[5];
-										SerialBuffer[5] = SerialBuffer[6];
-										i--;
-									}
-								}
-							}
-					} while (i < 2000);// (NoBytesRecieved > 0);
-
-					printf("\n reached here\n\n\n");
-
-					/*------------Printing the RXed String to Console----------------------*/
-
-					system("cls");
-
-					printf("\n\n    ");
-					for (int j = 0; j < i - 1; j++)		// j < i-1 to remove the dupliated last character
-					{
-						if ((j % 20) == 0)
-							printf("\n");
-
-						printf("0x%02x, ", (uint8_t)SerialBuffer[j]);
-						
-					}
-		
-				}	
-		
-				CloseHandle(hComm);//Closing the Serial Port
-				printf("\n +==========================================+\n");
-				_getch();
+			getScanLineOfData(hComm);
+			CloseHandle(hComm);//Closing the Serial Port
+			printf("\n +==========================================+\n");
+			_getch();
 		}//End of Main()
