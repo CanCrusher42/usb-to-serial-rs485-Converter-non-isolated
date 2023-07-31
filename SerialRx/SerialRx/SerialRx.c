@@ -70,11 +70,12 @@
 	//			char   ComPortName[] = "\\\\.\\COM32";                                                    //
 	//====================================================================================================//
 
-	#include <Windows.h>
-	#include <stdio.h>
-	#include <stdlib.h>
-	#include <stdint.h>	
-	#include <stdbool.h>
+#include <Windows.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>	
+#include <stdbool.h>
+#include <math.h>
 #include <dos.h>
 
 HANDLE hComm;
@@ -126,6 +127,43 @@ void PrintRawBuffer(uint8_t* buffer, int numChars)
 
 }
 
+void DisplayLineToRoom(struct sample_struct sampleLine[LINE_BUFFER_SIZE], int numSamples, uint16_t startAngle, uint16_t endAngle, uint8_t minQuality, uint16_t maxHeight)
+{
+	// Middle Angle = startAngle+90;
+	// Get Max Neg and Pos X
+	// Get Max Neg and Pos Y
+	int xValue[180];
+	int yValue[180];
+	int minX = 1000, maxX = -1000;
+	int maxY = -1000;
+
+	int angleOffset = startAngle;
+	int yPerRow, xPerColumn;
+
+	// Get Scale Values
+	for (uint16_t angle = startAngle; angle < (startAngle + 180); angle++)
+	{
+		
+		xValue[angle-startAngle] = round((-1.0 * cos((angle - angleOffset)* 0.0174533)) * (float)sampleLine[angle].distance);
+		yValue[angle - startAngle] = round((sin((angle - angleOffset) * 0.0174533)) * (float)sampleLine[angle].distance);
+
+		if (xValue[angle - startAngle] < minX)
+			minX = xValue[angle - startAngle];
+		if (xValue[angle - startAngle] > maxX)
+			maxX = xValue[angle - startAngle];
+		if (yValue[angle - startAngle] > maxY)
+			maxY = yValue[angle - startAngle];
+	}
+	yPerRow = maxY / maxHeight ;
+	xPerColumn = ( max(abs(minX), abs(maxX)) * 2) / 180;
+	int yPerRow = maxY / maxHeight;
+
+
+
+
+
+	
+}
 void DisplayLineDistance(struct sample_struct sampleLine[LINE_BUFFER_SIZE],int numSamples,  uint16_t startAngle, uint16_t endAngle, uint8_t minQuality, uint16_t maxHeight)
 {
 	char displayLine[365];
@@ -273,7 +311,7 @@ void DisplayLineQuality(struct sample_struct sampleLine[LINE_BUFFER_SIZE], int n
 }
 
 
-int TransferArrayToLine(uint8_t* rawBuffer, struct sample_struct* lineBuffer)
+int TransferBasicArrayToLine(uint8_t* rawBuffer, struct sample_struct* lineBuffer)
 {
 	int lineSize = 0;
 	int charCount = 0;
@@ -285,16 +323,19 @@ int TransferArrayToLine(uint8_t* rawBuffer, struct sample_struct* lineBuffer)
 		// Use angle as index into array of 360 items
 		index = ((rawBuffer[charCount + 1] >> 1) + (((uint16_t)rawBuffer[charCount + 2]) << 7) ) >> 6;
 		
-		lineBuffer[index].quality  = rawBuffer[charCount] >> 2;
+		if ((rawBuffer[charCount] >> 2) != 0)
+		{
+			lineBuffer[index].quality = rawBuffer[charCount] >> 2;
 
-		//lineBuffer[index].angle    = (rawBuffer[charCount + 1] >> 1) + (((uint16_t)rawBuffer[charCount + 2]) << 7);
-	
-		lineBuffer[index].angle  = rawBuffer[charCount + 2];
-		lineBuffer[index].angle = (lineBuffer[index].angle << 7) | (rawBuffer[charCount + 1] >> 1);
 
-		lineBuffer[index].distance = (((uint16_t)rawBuffer[charCount + 4]) << 8) + rawBuffer[charCount + 3];
-		lineBuffer[index].distance = lineBuffer[index].distance / 4;  // Sensor is /4 mm
+			//lineBuffer[index].angle    = (rawBuffer[charCount + 1] >> 1) + (((uint16_t)rawBuffer[charCount + 2]) << 7);
 
+			lineBuffer[index].angle = rawBuffer[charCount + 2];
+			lineBuffer[index].angle = (lineBuffer[index].angle << 7) | (rawBuffer[charCount + 1] >> 1);
+
+			lineBuffer[index].distance = (((uint16_t)rawBuffer[charCount + 4]) << 8) + rawBuffer[charCount + 3];
+			lineBuffer[index].distance = lineBuffer[index].distance / 4;  // Sensor is /4 mm
+		}
 		// look for start of next line
 		if ((charCount > 0) & ((rawBuffer[charCount] & 3) == 1))
 			lineSize++;
@@ -304,11 +345,97 @@ int TransferArrayToLine(uint8_t* rawBuffer, struct sample_struct* lineBuffer)
 	return charCount;
 }
 
+#define EXPRESSED_PACKET_SIZE 84
+#define ANGLES_DIV_RATIO 6
 
 
 
+int TransferExpressGroupToLine(uint8_t rawBuffer[], struct sample_struct* lineBuffer)
+{
+	int lineSize = 0;
+	int charCount = 0;
+	uint16_t startAngleQ6w0, startAngleQ6w1;
+	int cabin;
+	int angleDiff;
+	int index;
+	uint8_t *cabinStart;
+	uint16_t dist1, dist2;
+	uint16_t ang1, ang2;
+	uint16_t d0,d1;
+
+	if (((rawBuffer[0] & 0xF0) == 0xA0) && ((rawBuffer[1] & 0xF0) == 0x50))
+	{
+		startAngleQ6w0 = rawBuffer[3] & 0x7F;
+		startAngleQ6w0 = (startAngleQ6w0 << 8) + rawBuffer[2];
+		startAngleQ6w1 = rawBuffer[EXPRESSED_PACKET_SIZE + 3] & 0x7F;
+		startAngleQ6w1 = (startAngleQ6w1 << 8 ) + rawBuffer[EXPRESSED_PACKET_SIZE + 2];
+
+		if (startAngleQ6w0 <= startAngleQ6w1)
+			angleDiff = (startAngleQ6w1 - startAngleQ6w0) ;
+		else
+			angleDiff = (360 + startAngleQ6w1 - startAngleQ6w0) ;
+
+		uint16_t anglePerCabin = angleDiff;
+
+		angleDiff = angleDiff / 32;  //(angle per sample)
 
 
+		cabinStart = rawBuffer + 4;
+		for (cabin = 0; cabin < 16; cabin++)
+		{
+			dist1 = (cabinStart[cabin * 5 + 1] <<6);
+			dist1 = dist1 + (cabinStart[cabin * 5] >> 2);
+			dist2 = (cabinStart[cabin * 5 + 3] << 6);
+			dist2 = dist1 + (cabinStart[cabin * 5 + 2] >> 2);
+			d0 = ((cabinStart[cabin  ] & 0x2) << 4) +  (cabinStart[4] & 0xF);
+			d1 = ((cabinStart[cabin+2] & 0x2) << 4) + ((cabinStart[4]>>4) & 0xF);
+			
+			ang1 = startAngleQ6w0 + (angleDiff * 2*cabin) - d0;
+			ang2 = startAngleQ6w0 + (angleDiff * (2*cabin+1)) - d1;
+
+			if (dist1 > 0)
+			{
+				lineBuffer[ang1 >> ANGLES_DIV_RATIO].angle = ang1;
+				lineBuffer[ang1 >> ANGLES_DIV_RATIO].distance = dist1;
+			}
+			if (dist2 > 0)
+			{
+				lineBuffer[ang2 >> ANGLES_DIV_RATIO].angle = ang2;
+				lineBuffer[ang2 >> ANGLES_DIV_RATIO].distance = dist2;
+			}
+
+		}
+	}
+	return charCount;
+}
+
+bool TransferExpressArrayToLine(uint8_t *SerialBuffer, struct sample_struct* lineBuffer)
+{
+	uint8_t *buffer = SerialBuffer;
+	bool done = false;
+	int count;
+
+	while (done == false)
+	{
+		count = TransferExpressGroupToLine(buffer, lineBuffer);
+		buffer += EXPRESSED_PACKET_SIZE;
+		
+		if (buffer[3] & 0x80)
+			done = true;
+
+	}
+}
+
+
+extern uint8_t ExpressTestSample1[];
+
+bool TestTransferExpressGroupToLine()
+{
+
+	//struct sample_struct lineBuffer[LINE_BUFFER_SIZE];
+	
+	TransferExpressGroupToLine(ExpressTestSample1, lineBuffer);
+}
 
 
 
@@ -540,7 +667,7 @@ bool ResetAndStartCapture(HANDLE hComm, enum eSCAN_MODES scanMode)
 
 		Status = WaitCommEvent(hComm, &dwEventMask, NULL); //Wait for the character to be received
 
-		printf("\n\n    Waiting for response characters");
+		printf("\n\n    Waiting for response characters\n");
 		Status = ReadFile(hComm, &tempChar[0], 7, &NoBytesRecieved, NULL);
 		if (Status == FALSE)
 		{
@@ -558,7 +685,7 @@ bool ResetAndStartCapture(HANDLE hComm, enum eSCAN_MODES scanMode)
 
 };
 
-int getScanLineOfData(HANDLE hComm, int numChars)
+int getRawBasicScanLineOfData(HANDLE hComm, int numChars)
 {
 	BOOL  Status;                          // Status of the various operations 
 	DWORD dwEventMask;                     // Event mask to trigger
@@ -621,28 +748,106 @@ int getScanLineOfData(HANDLE hComm, int numChars)
 				}
 			}
 		} while (i < numChars);// (NoBytesRecieved > 0);
-
-		printf("\n reached here\n\n\n");
-
 	}
-
-
 }
 
+
+int getRawExpressScanLineOfData(HANDLE hComm, int numChars)
+{
+	BOOL  Status;                          // Status of the various operations 
+	DWORD dwEventMask;                     // Event mask to trigger
+	char  TempChar[10];                        // Temperory Character
+
+	DWORD NoBytesRecieved;                 // Bytes read by ReadFile()
+
+
+	DWORD  dNoOFBytestoRead;              // No of bytes to write into the port
+	DWORD  dNoOfBytesWritten = 0;          // No of bytes written to the port
+	BOOL match = false;
+
+	int i = 0;
+
+	printf("\n\n    Waiting for Data Reception");
+
+	Status = WaitCommEvent(hComm, &dwEventMask, NULL); //Wait for the character to be received
+
+	//EXPRESSED_PACKET_SIZE
+
+	/*-------------------------- Program will Wait here till a Character is received ------------------------*/
+	int loops = 0;
+	bool startCapture = false;
+	if (Status == FALSE)
+	{
+		printf("\n    Error! in Setting WaitCommEvent()");
+	}
+	else
+	{
+		startCapture = false;
+		dNoOFBytestoRead = 1;
+		do
+		{
+			Status = ReadFile(hComm, &TempChar[0], 1, &NoBytesRecieved, NULL);
+
+			for (DWORD h = 0; h < NoBytesRecieved; h++)
+				SerialBuffer[i + h] = TempChar[h];
+			i += NoBytesRecieved;
+
+
+#define NUM_EXPRESS_SYNCS 1
+			if (startCapture == false)
+			{
+				// Start checking once we have received at least the number of samples needed to sync into the data stream
+				if (i == (((NUM_EXPRESS_SYNCS -1 ) * EXPRESSED_PACKET_SIZE) + 4))
+				{
+					// Look for the Start Scan seqeunce
+					startCapture = (((SerialBuffer[0] & 0xF0) == 0xA0) && ((SerialBuffer[1] & 0xF0) == 0x50));
+					startCapture = startCapture && ((SerialBuffer[3] & 0x80) != 0);
+
+					if (startCapture == false)
+					{
+						for (int shift = 0; shift < 3; shift++)
+							SerialBuffer[shift] = SerialBuffer[shift + 1];
+						i--;
+					}
+					else
+					{
+						startCapture = startCapture;
+					}
+				}
+			}
+		} while (i < numChars);// (NoBytesRecieved > 0);
+	}
+}
+
+//#define DO_EPRESS
+#define DO_BASIC 
 	void main(void)
 		{
 			BOOL  Status;                          // Status of the various operations 
 
+		//	TestTransferExpressGroupToLine();
+			printf("\n\n");
+	//		DisplayLineDistance(lineBuffer, 100, 0, 180, 80, 50);
+
 			Status = OpenLpLidar();
 
+#ifdef DO_BASIC
 
+			ResetAndStartCapture(hComm, BASIC_SCAN);
+			getRawBasicScanLineOfData(hComm, 1500);
+			//getBasicScanLineOfData(hComm,1500);
+#else
 			ResetAndStartCapture(hComm, EXPRESS_SCAN);
-			getScanLineOfData(hComm,1500);
+			getRawExpressScanLineOfData(hComm, 2000);
+#endif
 			system("cls");
 			PrintRawBuffer(SerialBuffer, 1500);
 
-			int bytesInLine = TransferArrayToLine(SerialBuffer, lineBuffer);
-
+#ifdef DO_BASIC 
+			int bytesInLine = TransferBasicArrayToLine(SerialBuffer, lineBuffer);
+#else
+			int bytesInLine = TransferExpressArrayToLine(SerialBuffer, lineBuffer);
+#endif
 			system("cls");
 			DisplayLineQuality(lineBuffer, bytesInLine / 5, 0, 180, 80, 10);
 
@@ -650,6 +855,7 @@ int getScanLineOfData(HANDLE hComm, int numChars)
 			printf("\n\n");
 			DisplayLineDistance(lineBuffer, bytesInLine / 5, 0, 180, 80, 50);
 
+			DisplayLineToRoom(lineBuffer, bytesInLine / 5, 0, 180, 80, 50);
 			CloseHandle(hComm);//Closing the Serial Port
 			printf("\n +==========================================+\n");
 			_getch();

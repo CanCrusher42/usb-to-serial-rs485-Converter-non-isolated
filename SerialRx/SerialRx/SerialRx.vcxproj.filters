@@ -18,5 +18,8 @@
     <ClCompile Include="SerialRx.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ExpressSample.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
