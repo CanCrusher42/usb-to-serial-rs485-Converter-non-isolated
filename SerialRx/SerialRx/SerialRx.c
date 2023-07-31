@@ -132,8 +132,8 @@ void DisplayLineToRoom(struct sample_struct sampleLine[LINE_BUFFER_SIZE], int nu
 	// Middle Angle = startAngle+90;
 	// Get Max Neg and Pos X
 	// Get Max Neg and Pos Y
-	int xValue[180];
-	int yValue[180];
+	int xValue[180] = {0};
+	int yValue[180] = {0};
 	int minX = 1000, maxX = -1000;
 	int maxY = -1000;
 
@@ -162,6 +162,9 @@ void DisplayLineToRoom(struct sample_struct sampleLine[LINE_BUFFER_SIZE], int nu
 
 	int colStart = xPerColumn * (-90);
 	char displayLine[200];
+
+	// Now paint from the top row (Farthest away from the sensor first)
+
 	for (int row = maxHeight; row > 0; row--)
 	{
 		rowUpper = row * yPerRow;
@@ -173,7 +176,6 @@ void DisplayLineToRoom(struct sample_struct sampleLine[LINE_BUFFER_SIZE], int nu
 			{
 				int xDiv = (xValue[col]-colStart) / xPerColumn;
 					displayLine[col] = '*';
-				//if ( (xValue[col] > (colStart + xPerColumn * col)) && (xValue[col] <= (colStart + xPerColumn * (col+1))) )
 					
 			} 
 		}
@@ -187,11 +189,9 @@ void DisplayLineToRoom(struct sample_struct sampleLine[LINE_BUFFER_SIZE], int nu
 		printf("%s\n", displayLine);
 	}
 
-	// Now paint from the top row (Farthest away from the sensor first)
-
-
-
-
+	memset(displayLine, '-', 179);
+	displayLine[180] = 0;
+	printf("%s\n", displayLine);
 
 	
 }
@@ -342,34 +342,44 @@ void DisplayLineQuality(struct sample_struct sampleLine[LINE_BUFFER_SIZE], int n
 }
 
 
-int TransferBasicArrayToLine(uint8_t* rawBuffer, struct sample_struct* lineBuffer)
+int TransferBasicArrayToLine(uint8_t* rawBuffer, struct sample_struct* lineBuffer, int NumberLinesToMerge)
 {
-	int lineSize = 0;
+	
 	int charCount = 0;
-
+	int lineCount = 0;   // could use this to merge more than one line...
 	int index;
-
-	while (lineSize == 0)
+	
+	while (lineCount < (NumberLinesToMerge))
 	{
 		// Use angle as index into array of 360 items
 		index = ((rawBuffer[charCount + 1] >> 1) + (((uint16_t)rawBuffer[charCount + 2]) << 7) ) >> 6;
 		
 		if ((rawBuffer[charCount] >> 2) != 0)
 		{
-			lineBuffer[index].quality = rawBuffer[charCount] >> 2;
+			
+			if ( (lineCount>=1) && (lineBuffer[index].quality == 0))
+			{ 
+				printf("Adding Missed line");
+			}
+			// only merge good samples
+			if ((rawBuffer[charCount] >> 2) > 3)
+			{
+				lineBuffer[index].quality = rawBuffer[charCount] >> 2;
 
+				lineBuffer[index].angle = rawBuffer[charCount + 2];
+				lineBuffer[index].angle = (lineBuffer[index].angle << 7) | (rawBuffer[charCount + 1] >> 1);
 
-			//lineBuffer[index].angle    = (rawBuffer[charCount + 1] >> 1) + (((uint16_t)rawBuffer[charCount + 2]) << 7);
-
-			lineBuffer[index].angle = rawBuffer[charCount + 2];
-			lineBuffer[index].angle = (lineBuffer[index].angle << 7) | (rawBuffer[charCount + 1] >> 1);
-
-			lineBuffer[index].distance = (((uint16_t)rawBuffer[charCount + 4]) << 8) + rawBuffer[charCount + 3];
-			lineBuffer[index].distance = lineBuffer[index].distance / 4;  // Sensor is /4 mm
+				lineBuffer[index].distance = (((uint16_t)rawBuffer[charCount + 4]) << 8) + rawBuffer[charCount + 3];
+				lineBuffer[index].distance = lineBuffer[index].distance / 4;  // Sensor is /4 mm
+			}
 		}
 		// look for start of next line
 		if ((charCount > 0) & ((rawBuffer[charCount] & 3) == 1))
-			lineSize++;
+		{
+			lineCount++;
+			if (lineCount < NumberLinesToMerge)
+				charCount += 5;
+		}
 		else
 			charCount += 5;
 	}
@@ -440,21 +450,25 @@ int TransferExpressGroupToLine(uint8_t rawBuffer[], struct sample_struct* lineBu
 	return charCount;
 }
 
-bool TransferExpressArrayToLine(uint8_t *SerialBuffer, struct sample_struct* lineBuffer)
+bool TransferExpressArrayToLine(uint8_t *SerialBuffer, struct sample_struct* lineBuffer, int linesToMerge)
 {
 	uint8_t *buffer = SerialBuffer;
 	bool done = false;
 	int count;
-
+	int lineCount = 0;
 	while (done == false)
 	{
 		count = TransferExpressGroupToLine(buffer, lineBuffer);
 		buffer += EXPRESSED_PACKET_SIZE;
 		
 		if (buffer[3] & 0x80)
-			done = true;
-
+		{
+			if (++lineCount >= linesToMerge)
+				done = true;
+			
+		}
 	}
+	return true;
 }
 
 
@@ -863,22 +877,32 @@ int getRawExpressScanLineOfData(HANDLE hComm, int numChars)
 			Status = OpenLpLidar();
 
 #ifdef DO_BASIC
-
+			int samples = 2600;
 			ResetAndStartCapture(hComm, BASIC_SCAN);
-			getRawBasicScanLineOfData(hComm, 1500);
-			//getBasicScanLineOfData(hComm,1500);
 #else
+			int samples = 2600;
 			ResetAndStartCapture(hComm, EXPRESS_SCAN);
-			getRawExpressScanLineOfData(hComm, 2000);
 #endif
-			system("cls");
-			PrintRawBuffer(SerialBuffer, 1500);
+
+#define numberOfScans 2
+			memset(lineBuffer, 0, samples);
+			int bytesInLine;
+			for (int scanCount = 0; scanCount < numberOfScans; scanCount++)
+			{
+#ifdef DO_BASIC
+				getRawBasicScanLineOfData(hComm, samples);
+#else
+				getRawExpressScanLineOfData(hComm, Samples);
+#endif
+				system("cls");
+				PrintRawBuffer(SerialBuffer, samples);
 
 #ifdef DO_BASIC 
-			int bytesInLine = TransferBasicArrayToLine(SerialBuffer, lineBuffer);
+				bytesInLine = TransferBasicArrayToLine(SerialBuffer, lineBuffer, 2);
 #else
-			int bytesInLine = TransferExpressArrayToLine(SerialBuffer, lineBuffer);
+				bytesInLine = TransferExpressArrayToLine(SerialBuffer, lineBuffer, 1);
 #endif
+			}
 			system("cls");
 			DisplayLineQuality(lineBuffer, bytesInLine / 5, 0, 180, 80, 10);
 
@@ -886,6 +910,7 @@ int getRawExpressScanLineOfData(HANDLE hComm, int numChars)
 			printf("\n\n");
 			DisplayLineDistance(lineBuffer, bytesInLine / 5, 0, 180, 80, 50);
 
+			printf("\n\n\n\n");
 			DisplayLineToRoom(lineBuffer, bytesInLine / 5, 0, 180, 80, 50);
 			CloseHandle(hComm);//Closing the Serial Port
 			printf("\n +==========================================+\n");
