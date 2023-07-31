@@ -156,7 +156,38 @@ void DisplayLineToRoom(struct sample_struct sampleLine[LINE_BUFFER_SIZE], int nu
 	}
 	yPerRow = maxY / maxHeight ;
 	xPerColumn = ( max(abs(minX), abs(maxX)) * 2) / 180;
-	int yPerRow = maxY / maxHeight;
+	yPerRow = maxY / maxHeight;
+
+	int rowUpper, rowLower;
+
+	int colStart = xPerColumn * (-90);
+	char displayLine[200];
+	for (int row = maxHeight; row > 0; row--)
+	{
+		rowUpper = row * yPerRow;
+		rowLower = (row - 1) * yPerRow;
+		for (int col = 0; col < 180; col++)
+		{
+			displayLine[col] = ' ';
+			if ((yValue[col] > rowLower) && (yValue[col] <= rowUpper))
+			{
+				int xDiv = (xValue[col]-colStart) / xPerColumn;
+					displayLine[col] = '*';
+				//if ( (xValue[col] > (colStart + xPerColumn * col)) && (xValue[col] <= (colStart + xPerColumn * (col+1))) )
+					
+			} 
+		}
+		if (row < 3)
+		{
+			displayLine[89] = '#';
+			displayLine[90] = '#';
+			displayLine[91] = '#';
+		}
+		displayLine[180] = 0;
+		printf("%s\n", displayLine);
+	}
+
+	// Now paint from the top row (Farthest away from the sensor first)
 
 
 
