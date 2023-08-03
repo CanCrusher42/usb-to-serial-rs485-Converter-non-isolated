@@ -98,7 +98,9 @@ struct RplidarScanMode {
     bool isConnected();     
     u_result reset(_u16);
 
-#if 0
+    u_result getHealth(rplidar_response_device_health_t* health, _u32 Timeout);
+    u_result getDeviceInfo(rplidar_response_device_info_t* info, _u32 Timeout);
+
 #if 0 // Not implemented
     u_result getLidarConf(_u32 type, std::vector<_u8> &outputBuf, const std::vector<_u8> &reserve = std::vector<_u8>(), _u32 timeout = DEFAULT_TIMEOUT);
     u_result getScanModeCount(_u16& modeCount, _u32 timeoutInMs = DEFAULT_TIMEOUT);
@@ -109,11 +111,14 @@ struct RplidarScanMode {
 #endif
 
 
-    u_result startScan(bool force, bool useTypicalScan, _u32 options = 0, RplidarScanMode* outUsedScanMode = NULL);
-    u_result startScanExpress(bool force, _u16 scanMode, _u32 options = 0, RplidarScanMode* outUsedScanMode = NULL, _u32 timeout = DEFAULT_TIMEOUT);
+//    u_result startScan(bool force, bool useTypicalScan, _u32 options = 0, RplidarScanMode* outUsedScanMode = NULL);
+//    u_result startScanExpress(bool force, _u16 scanMode, _u32 options = 0, RplidarScanMode* outUsedScanMode = NULL, _u32 timeout = DEFAULT_TIMEOUT);
+//    u_result getHealth(rplidar_response_device_health_t* health, _u32 timeout );
+//    u_result getDeviceInfo(rplidar_response_device_info_t* info, _u32 timeout );
 
-    u_result getHealth(rplidar_response_device_health_t & health, _u32 timeout = DEFAULT_TIMEOUT);
-    u_result getDeviceInfo(rplidar_response_device_info_t & info, _u32 timeout = DEFAULT_TIMEOUT);
+
+
+#if 0
     u_result getSampleDuration_uS(rplidar_response_sample_rate_t & rateInfo, _u32 timeout = DEFAULT_TIMEOUT);
     u_result startScanNormal(bool force, _u32 timeout = DEFAULT_TIMEOUT);
     u_result stop(_u32 timeout = DEFAULT_TIMEOUT);

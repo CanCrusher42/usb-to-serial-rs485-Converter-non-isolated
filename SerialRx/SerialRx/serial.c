@@ -134,14 +134,19 @@ void lidarSerial_write(uint8_t* header, uint16_t length)
 
 };
 
-uint8_t rxBuffer[10];
+uint8_t rxBuffer[50] = { 0 };
+uint8_t rxAllBuffer[1000] = { 0 };
+uint16_t rxCount = 0;
+
 uint8_t lidarSerial_read()
 {
 	DWORD NoBytesExpected = 1;
 	DWORD NoBytesRecieved = 0;
-	bool Status = SetCommMask(hComm, EV_RXCHAR); //Configure Windows to Monitor the serial device for Character Reception
+	bool Status;
+	//bool Status = SetCommMask(hComm, EV_RXCHAR); //Configure Windows to Monitor the serial device for Character Reception
 
 	Status = ReadFile(hComm, &rxBuffer[0], NoBytesExpected, &NoBytesRecieved, NULL);
+	rxAllBuffer[rxCount++] = rxBuffer[0];
 	return rxBuffer[0];
 }
 

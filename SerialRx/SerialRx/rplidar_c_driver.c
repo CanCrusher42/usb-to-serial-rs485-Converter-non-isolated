@@ -54,6 +54,8 @@ u_result reset(_u16 timeout)
             return ans;
         }
     }
+    uint32_t startTime = GetTickCount();
+    while ((GetTickCount() - startTime) < 20) {};
     return RESULT_OK;
 }
 

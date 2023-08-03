@@ -1235,10 +1235,8 @@ int getRawExpressScanLineOfData(HANDLE hComm, int numChars)
 
 void main()
 {
-
-	bool testBasicCommand();
-
-	testBasicCommand();
+	bool runAllTests();
+	runAllTests();
 
 
 
