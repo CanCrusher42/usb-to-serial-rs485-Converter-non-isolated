@@ -71,15 +71,20 @@
 	//====================================================================================================//
 
 #include <Windows.h>
+#include <dos.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>	
 #include <stdbool.h>
 #include <math.h>
-#include <dos.h>
+
 
 HANDLE hComm;
 
+#define LPLIBRARY
+
+#ifndef LPLIBRARY
 #pragma pack(1)
 struct sample_struct {
 	uint8_t quality;
@@ -87,14 +92,24 @@ struct sample_struct {
 	uint16_t distance;
 };
 
-#define SERIAL_BUFFER_SIZE 4096
+#define SERIAL_BUFFER_SIZE 32000
 #define LINE_BUFFER_SIZE 512
+#define EXPRESSED_PACKET_SIZE 84
+
 
 char  SerialBuffer[SERIAL_BUFFER_SIZE];               // Buffer Containing Rxed Data
 struct sample_struct lineBuffer[LINE_BUFFER_SIZE];
 uint8_t scanMode = 0;
 enum eSCAN_MODES { BASIC_SCAN = 0x20, EXPRESS_SCAN = 0x82 };
 
+#define LIDAR_STOP  0x25
+#define LIADR_RESET 0x40
+#define LIDAR_SCAN  0x20
+#define LIDAR_EXPRESS_SCAN  0x82
+#define LIDAR_GET_INFO  0x50
+#define LIDAR_GET_HEALTH  0x52
+#define LIDAR_GET_SAMPLE_RATE  0x59
+#define LIDAR_GET_CONF  0x84
 
 void PrintHexBuffer(uint8_t* buffer, int bufferSize)
 {
@@ -107,22 +122,44 @@ void PrintHexBuffer(uint8_t* buffer, int bufferSize)
 	}
 }
 
-void PrintRawBuffer(uint8_t* buffer, int numChars)
+void PrintRawBuffer(uint8_t* buffer, int numChars, enum eSCAN_MODES mode)
 {
 	/*------------Printing the RXed String to Console----------------------*/
 
 	
-
-
-	for (int j = 0; j < numChars - 1; j++)		// j < i-1 to remove the dupliated last character
+	if (mode == BASIC_SCAN)
 	{
-		if (((j % 5) == 0) && ((buffer[j] & 1) == 1))
-			printf("* %d \n", j);
-		if ((j % 20) == 0)
-			printf("\n");
 
-		printf("0x%02x, ", (uint8_t)buffer[j]);
+		for (int j = 0; j < numChars - 1; j++)		// j < i-1 to remove the dupliated last character
+		{
+			if (((j % 5) == 0) && ((buffer[j] & 1) == 1))
+				printf("* %d \n", j);
+			if ((j % 20) == 0)
+				printf("\n");
 
+			printf("0x%02x, ", (uint8_t)buffer[j]);
+
+		}
+	}
+	if (mode == EXPRESS_SCAN)
+	{
+		uint16_t prevAngle = 0;
+		for (int j = 0; j < numChars - 1; j++)		// j < i-1 to remove the dupliated last character
+		{
+			if (((j % EXPRESSED_PACKET_SIZE) == 0))
+			{
+				uint16_t angle = (((uint16_t)buffer[j + 3]) << 8) + buffer[j + 2];
+				printf("\n%d * %d D=%d a=%d \n", j, angle, angle - prevAngle, angle>>6);
+				prevAngle = angle;
+			}
+				if (((j % EXPRESSED_PACKET_SIZE) == 0) && ((buffer[j + 3] & 0x80) == 0x80))
+					printf("* %d \n", j);
+				if ((j % 20) == 0)
+					printf("\n");
+
+				printf("0x%02x, ", (uint8_t)buffer[j]);
+			
+		}
 	}
 
 }
@@ -386,7 +423,7 @@ int TransferBasicArrayToLine(uint8_t* rawBuffer, struct sample_struct* lineBuffe
 	return charCount;
 }
 
-#define EXPRESSED_PACKET_SIZE 84
+
 #define ANGLES_DIV_RATIO 6
 
 
@@ -589,6 +626,278 @@ bool OpenLpLidar(/*HANDLE hComm*/)
 
 }
 
+
+bool StopAndGetLidarInfo(HANDLE hComm)
+{
+	uint8_t   lpBuffer[100];		       // lpBuffer should be  char or byte array, otherwise write wil fail
+	DWORD  dNoOFBytestoWrite;              // No of bytes to write into the port
+	DWORD  dNoOfBytesWritten = 0;          // No of bytes written to the port
+	BOOL  Status;                          // Status of the various operations 
+	DWORD dwEventMask;                     // Event mask to trigger
+	uint8_t tempChar[100] = { 0 };
+	DWORD NoBytesRecieved;
+	DWORD NoBytesExpected;
+
+
+
+	// --------------------------------------
+	// First Stop anything working now.
+	// --------------------------------------
+	lpBuffer[0] = LIDAR_STOP; // 0x25;  // STOP
+
+	dNoOFBytestoWrite = 1; // Calculating the no of bytes to write into the port
+
+	bool success = PurgeComm(hComm, PURGE_RXCLEAR);
+	if (success == false)
+	{
+		printf("\n\n\nPurge Status = %d \n", success);
+		return false;
+	}
+
+	Status = WriteFile(hComm,               // Handle to the Serialport
+		lpBuffer,            // Data to be written to the port 
+		dNoOFBytestoWrite,   // No of bytes to write into the port
+		&dNoOfBytesWritten,  // No of bytes written to the port
+		NULL);
+	Sleep(20);
+
+	
+		// --------------------------
+		// Get Info
+		// --------------------------
+		lpBuffer[0] = 0xA5;
+		lpBuffer[1] = LIDAR_GET_INFO;// 0x20;
+		NoBytesExpected = 20;
+
+		dNoOFBytestoWrite = 2; // Calculating the no of bytes to write into the port
+
+		success = PurgeComm(hComm, PURGE_RXCLEAR);
+		if (success == false)
+		{
+			printf("\n\n\nBasic Purge Status = %d \n", success);
+			return false;
+		}
+
+		Status = WriteFile(hComm,		// Handle to the Serialport
+			lpBuffer,					// Data to be written to the port 
+			dNoOFBytestoWrite,			// No of bytes to write into the port
+			&dNoOfBytesWritten,			// No of bytes written to the port
+			NULL);
+
+		if (Status == TRUE)
+		{
+			//	printf("\n\n    0x%02x 0x%02x - Written to Com Port", (uint8_t)lpBuffer[0], (uint8_t)lpBuffer[1]);
+		}
+		else
+		{
+			printf("\n\n   Error %d in Writing to Serial Port", GetLastError());
+			return false;
+		}
+
+
+		//Status = WaitCommEvent(hComm, &dwEventMask, NULL); //Wait for the character to be received
+
+
+		Status = ReadFile(hComm, &tempChar[0], NoBytesExpected, &NoBytesRecieved, NULL);
+		if (Status == FALSE)
+		{
+			printf("\n    Error! in Setting WaitCommEvent()");
+			return false;
+		}
+		else
+		{
+			printf("\n\nGET INFO BUFFER\n");
+			PrintHexBuffer(tempChar, NoBytesRecieved);
+			printf("\nModel = %d\n", tempChar[7]);
+			printf("FW    = %d.%d\n", tempChar[9], tempChar[8]);
+			printf("HW    = %d\n", tempChar[10]);
+			printf("\n");
+		}
+
+		// --------------------------
+		// Get HEALTH
+		// --------------------------
+		lpBuffer[0] = 0xA5;
+		lpBuffer[1] = LIDAR_GET_HEALTH;// 0x52
+		NoBytesExpected = 7+3;
+
+		dNoOFBytestoWrite = 2; // Calculating the no of bytes to write into the port
+
+		success = PurgeComm(hComm, PURGE_RXCLEAR);
+		if (success == false)
+		{
+			printf("\n\n\nBasic Purge Status = %d \n", success);
+			return false;
+		}
+
+		Status = WriteFile(hComm,		// Handle to the Serialport
+			lpBuffer,					// Data to be written to the port 
+			dNoOFBytestoWrite,			// No of bytes to write into the port
+			&dNoOfBytesWritten,			// No of bytes written to the port
+			NULL);
+
+		if (Status == TRUE)
+		{
+			//printf("\n\n    0x%02x 0x%02x - Written to Com Port", (uint8_t)lpBuffer[0], (uint8_t)lpBuffer[1]);
+		}
+		else
+		{
+			printf("\n\n   Error %d in Writing to Serial Port", GetLastError());
+			return false;
+		}
+
+
+		Status = WaitCommEvent(hComm, &dwEventMask, NULL); //Wait for the character to be received
+
+
+		Status = ReadFile(hComm, &tempChar[0], NoBytesExpected, &NoBytesRecieved, NULL);
+		if (Status == FALSE)
+		{
+			printf("\n    Error! in Setting WaitCommEvent()");
+			return false;
+		}
+		else
+		{
+			printf("\nGET HEALTH BUFFER\n");
+			PrintHexBuffer(tempChar, NoBytesRecieved);
+			printf("\n");
+		}
+
+
+		// --------------------------
+		// Get SAMPLE RATE
+		// --------------------------
+		lpBuffer[0] = 0xA5;
+		lpBuffer[1] = LIDAR_GET_SAMPLE_RATE;// 0x59
+		NoBytesExpected = 7 + 4;
+
+		dNoOFBytestoWrite = 2; // Calculating the no of bytes to write into the port
+
+		success = PurgeComm(hComm, PURGE_RXCLEAR);
+		if (success == false)
+		{
+			printf("\n\n\nBasic Purge Status = %d \n", success);
+			return false;
+		}
+
+		Status = WriteFile(hComm,		// Handle to the Serialport
+			lpBuffer,					// Data to be written to the port 
+			dNoOFBytestoWrite,			// No of bytes to write into the port
+			&dNoOfBytesWritten,			// No of bytes written to the port
+			NULL);
+
+		if (Status == TRUE)
+		{
+		//	printf("\n\n    0x%02x 0x%02x - Written to Com Port", (uint8_t)lpBuffer[0], (uint8_t)lpBuffer[1]);
+		}
+		else
+		{
+			printf("\n\n   Error %d in Writing to Serial Port", GetLastError());
+			return false;
+		}
+		 
+
+		//Status = WaitCommEvent(hComm, &dwEventMask, NULL); //Wait for the character to be received
+
+
+		Status = ReadFile(hComm, &tempChar[0], NoBytesExpected, &NoBytesRecieved, NULL);
+		if (Status == FALSE)
+		{
+			printf("\n    Error! in Setting WaitCommEvent()");
+			return false;
+		}
+		else
+		{
+			printf("\nGET SAMPLE RATE BUFFER\n");
+			PrintHexBuffer(tempChar, NoBytesRecieved);
+			uint16_t b = tempChar[8] * 256;
+			b += tempChar[7];
+			printf("\nStd     Sample Rate = %d uSec\n", b);
+			b = tempChar[10] * 256;
+			b += tempChar[9];
+			printf("Express Sample Rate = %d uSec\n", b);
+			printf("\n");
+		}
+
+
+
+		// --------------------------
+		// Get LIDAR_GET_CONF Scan Mode Count
+		// --------------------------
+		memset(lpBuffer, 0, 36+3+1);
+		lpBuffer[0] = 0xA5;
+		lpBuffer[1] = LIDAR_GET_CONF;// 0x84
+		lpBuffer[2] = 36; //count payload size = 1 WORD + 32 bytes
+		lpBuffer[3] = 0;
+		lpBuffer[4] = 0;
+		lpBuffer[5] = 0;
+		lpBuffer[3] = 0x70; //Scan Mode Count
+
+
+		uint8_t checksum=0;
+		for (int i = 0; i < (36 + 3); i++)
+			checksum ^= lpBuffer[i];
+
+		lpBuffer[3 + 36] = checksum;
+
+		printf("checksum = 0x%x  \n", checksum);
+		NoBytesExpected = 2;
+
+		dNoOFBytestoWrite = 3+36+1; // Calculating the no of bytes to write into the port
+		printf("\n\nGET CONFIG\n");
+		success = PurgeComm(hComm, PURGE_RXCLEAR);
+		if (success == false)
+		{
+			printf("\n\n\nBasic Purge Status = %d \n", success);
+			return false;
+		}
+
+		Status = WriteFile(hComm,		// Handle to the Serialport
+			lpBuffer,					// Data to be written to the port 
+			dNoOFBytestoWrite,			// No of bytes to write into the port
+			&dNoOfBytesWritten,			// No of bytes written to the port
+			NULL);
+
+		if (Status == TRUE)
+		{
+			PrintHexBuffer(lpBuffer, dNoOFBytestoWrite);
+//			printf("\n\n    0x%02x 0x%02x - Written to Com Port", (uint8_t)lpBuffer[0], (uint8_t)lpBuffer[1]);
+		}
+		else
+		{
+			printf("\n\n   Error %d in Writing to Serial Port", GetLastError());
+			return false;
+		}
+
+		printf("\nGoing to read data back %d\n", NoBytesExpected);
+
+		//Status = WaitCommEvent(hComm, &dwEventMask, NULL); //Wait for the character to be received
+
+
+		Status = ReadFile(hComm, &tempChar[0], NoBytesExpected, &NoBytesRecieved, NULL);
+		if (Status == FALSE)
+		{
+			printf("\n    Error! in Setting WaitCommEvent()");
+			return false;
+		}
+		else
+		{
+			printf("GET SCAN MODE COUNT\n");
+			PrintHexBuffer(tempChar, NoBytesRecieved);
+			printf("\n");
+		}
+
+
+
+
+
+	}
+
+
+#define BASIC_INDEX 0
+#define EXPRESS_INDEX 1
+
+
 bool ResetAndStartCapture(HANDLE hComm, enum eSCAN_MODES scanMode)
 {
 	uint8_t   lpBuffer[20];		       // lpBuffer should be  char or byte array, otherwise write wil fail
@@ -596,19 +905,19 @@ bool ResetAndStartCapture(HANDLE hComm, enum eSCAN_MODES scanMode)
 	DWORD  dNoOfBytesWritten = 0;          // No of bytes written to the port
 	BOOL  Status;                          // Status of the various operations 
 	DWORD dwEventMask;                     // Event mask to trigger
-	uint8_t tempChar[100];
+	uint8_t tempChar[100] = { 0 };
 	DWORD NoBytesRecieved;
+	DWORD NoBytesExpected;
 
 
-	
 	// --------------------------------------
-    // First Stop anything working now.
+	// First Stop anything working now.
 	// --------------------------------------
 	lpBuffer[0] = 0x25;  // STOP
 
 	dNoOFBytestoWrite = 1; // Calculating the no of bytes to write into the port
 
-	bool success = PurgeComm(hComm,PURGE_RXCLEAR);
+	bool success = PurgeComm(hComm, PURGE_RXCLEAR);
 	if (success == false)
 	{
 		printf("\n\n\nPurge Status = %d \n", success);
@@ -634,47 +943,8 @@ bool ResetAndStartCapture(HANDLE hComm, enum eSCAN_MODES scanMode)
 		lpBuffer[2] = 0x0;
 
 		dNoOFBytestoWrite = 2; // Calculating the no of bytes to write into the port
-
-		success = PurgeComm(hComm, PURGE_RXCLEAR);
-		if (success == false)
-		{
-			printf("\n\n\nBasic Purge Status = %d \n", success);
-			return false;
-		}
-
-		Status = WriteFile(hComm,               // Handle to the Serialport
-			lpBuffer,            // Data to be written to the port 
-			dNoOFBytestoWrite,   // No of bytes to write into the port
-			&dNoOfBytesWritten,  // No of bytes written to the port
-			NULL);
-
-		if (Status == TRUE)
-			printf("\n\n    0x%02x 0x%02x - Written to Com Port", (uint8_t)lpBuffer[0], (uint8_t)lpBuffer[1]);
-		else
-		{
-			printf("\n\n   Error %d in Writing to Serial Port", GetLastError());
-			return false;
-		}
-
-	
-		Status = WaitCommEvent(hComm, &dwEventMask, NULL); //Wait for the character to be received
-
-		printf("\n\n    Basic Characters Received");
-		Status = ReadFile(hComm, &tempChar[0], 50, &NoBytesRecieved, NULL);
-		if (Status == FALSE)
-		{
-			printf("\n    Error! in Setting WaitCommEvent()");
-			return false;
-		}
-		else
-		{
-			PrintHexBuffer(tempChar, NoBytesRecieved);
-			printf("\n");
-		}
+		NoBytesExpected = 7;
 	}
-
-
-
 	if (scanMode == EXPRESS_SCAN)
 	{
 		printf("\n    EXPRESS SCAN    \n");
@@ -689,46 +959,52 @@ bool ResetAndStartCapture(HANDLE hComm, enum eSCAN_MODES scanMode)
 		lpBuffer[8] = 0x22;
 
 		dNoOFBytestoWrite = 9; // Calculating the no of bytes to write into the port
+		NoBytesExpected = 7;
+	}
+	success = PurgeComm(hComm, PURGE_RXCLEAR);
+	if (success == false)
+	{
+		printf("\n\n\nBasic Purge Status = %d \n", success);
+		return false;
+	}
 
-		success = PurgeComm(hComm, PURGE_RXCLEAR);
-		if (success == false)
-		printf("\n\n\nPurge Status = %d \n", success);
+	Status = WriteFile(hComm,               // Handle to the Serialport
+		lpBuffer,            // Data to be written to the port 
+		dNoOFBytestoWrite,   // No of bytes to write into the port
+		&dNoOfBytesWritten,  // No of bytes written to the port
+		NULL);
 
-		Status = WriteFile(hComm,               // Handle to the Serialport
-			lpBuffer,            // Data to be written to the port 
-			dNoOFBytestoWrite,   // No of bytes to write into the port
-			&dNoOfBytesWritten,  // No of bytes written to the port
-			NULL);
-
-		if (Status == TRUE)
-		{
-			printf("\n  Command to sensor \n");
-			PrintHexBuffer(lpBuffer, dNoOFBytestoWrite);
-		}
-		else
-			printf("\n\n   Error %d in Writing to Serial Port", GetLastError());
-
-		printf("\n\n    Waiting for Data Reception");
-
-		Status = WaitCommEvent(hComm, &dwEventMask, NULL); //Wait for the character to be received
-
-		printf("\n\n    Waiting for response characters\n");
-		Status = ReadFile(hComm, &tempChar[0], 7, &NoBytesRecieved, NULL);
-		if (Status == FALSE)
-		{
-			printf("\n    Error! in Setting WaitCommEvent()");
-		}
-		else
-		{
-			PrintHexBuffer(tempChar, NoBytesRecieved);
-			printf("\n");
-		}
+	if (Status == TRUE)
+	{
+		/*printf("\n\n    0x%02x 0x%02x - Written to Com Port", (uint8_t)lpBuffer[0], (uint8_t)lpBuffer[1]); */
+	}
+	else
+	{
+		printf("\n\n   Error %d in Writing to Serial Port", GetLastError());
+		return false;
 	}
 
 
+	Status = WaitCommEvent(hComm, &dwEventMask, NULL); //Wait for the character to be received
 
-
+	printf("\n\n    Basic Characters Received");
+	Status = ReadFile(hComm, &tempChar[0], NoBytesExpected, &NoBytesRecieved, NULL);
+	if (Status == FALSE)
+	{
+		printf("\n    Error! in Setting WaitCommEvent()");
+		return false;
+	}
+	else
+	{
+		PrintHexBuffer(tempChar, NoBytesRecieved);
+		printf("\n");
+	}
 };
+
+
+
+
+
 
 int getRawBasicScanLineOfData(HANDLE hComm, int numChars)
 {
@@ -742,6 +1018,7 @@ int getRawBasicScanLineOfData(HANDLE hComm, int numChars)
 	DWORD  dNoOFBytestoRead;              // No of bytes to write into the port
 	DWORD  dNoOfBytesWritten = 0;          // No of bytes written to the port
 	BOOL match = false;
+	DWORD startTime=0, endTime=0;
 
 	int i = 0;
 
@@ -790,10 +1067,22 @@ int getRawBasicScanLineOfData(HANDLE hComm, int numChars)
 							SerialBuffer[shift] = SerialBuffer[shift + 1];
 						i--;
 					}
+					else
+					{
+						startTime = GetTickCount();
+					}
+				}
+			}
+			{
+				if ((i % 5) && (startCapture) && ((SerialBuffer[i] & 3) == 3) && (endTime == 0))
+				{
+					endTime = GetTickCount();
 				}
 			}
 		} while (i < numChars);// (NoBytesRecieved > 0);
 	}
+	printf("startTime = %d      endTime = %d   Delta = %d  \n", startTime, endTime, endTime-startTime);
+
 }
 
 
@@ -809,8 +1098,10 @@ int getRawExpressScanLineOfData(HANDLE hComm, int numChars)
 	DWORD  dNoOFBytestoRead;              // No of bytes to write into the port
 	DWORD  dNoOfBytesWritten = 0;          // No of bytes written to the port
 	BOOL match = false;
-
+	DWORD startTime = 0, endTime = 0;
+	int startAngle=0, endAngle=0;
 	int i = 0;
+
 
 	printf("\n\n    Waiting for Data Reception");
 
@@ -847,7 +1138,8 @@ int getRawExpressScanLineOfData(HANDLE hComm, int numChars)
 					// Look for the Start Scan seqeunce
 					startCapture = (((SerialBuffer[0] & 0xF0) == 0xA0) && ((SerialBuffer[1] & 0xF0) == 0x50));
 					startCapture = startCapture && ((SerialBuffer[3] & 0x80) != 0);
-
+					startAngle = (SerialBuffer[3] & 0x80);
+					startAngle = startAngle + SerialBuffer[2];
 					if (startCapture == false)
 					{
 						for (int shift = 0; shift < 3; shift++)
@@ -857,15 +1149,31 @@ int getRawExpressScanLineOfData(HANDLE hComm, int numChars)
 					else
 					{
 						startCapture = startCapture;
+						startTime = GetTickCount();
 					}
 				}
 			}
+			if ( ((i % EXPRESSED_PACKET_SIZE)==4) && (startCapture) && (i>(EXPRESSED_PACKET_SIZE+10))  &&
+				  ((SerialBuffer[i-4] & 0xF0) == 0xA0)  &&  
+				  (endTime == 0)   ) 
+			{
+				endAngle = (SerialBuffer[i-1] & 0x80);
+				endAngle = endAngle + SerialBuffer[i-2];
+				if ( (endAngle<startAngle) && (endTime==0))
+					endTime = GetTickCount();
+			}
+
+
 		} while (i < numChars);// (NoBytesRecieved > 0);
 	}
+	printf("startTime = %d      endTime = %d   Delta = %d  \n", startTime, endTime, endTime - startTime);
 }
 
-//#define DO_EPRESS
-#define DO_BASIC 
+
+
+
+#define DO_EPRESS
+//#define DO_BASIC 
 	void main(void)
 		{
 			BOOL  Status;                          // Status of the various operations 
@@ -873,29 +1181,32 @@ int getRawExpressScanLineOfData(HANDLE hComm, int numChars)
 		//	TestTransferExpressGroupToLine();
 			printf("\n\n");
 	//		DisplayLineDistance(lineBuffer, 100, 0, 180, 80, 50);
-
+			enum eSCAN_MODES scanMode = EXPRESS_SCAN; // { BASIC_SCAN = 0x20, EXPRESS_SCAN = 0x82 };
 			Status = OpenLpLidar();
-
+			
 #ifdef DO_BASIC
 			int samples = 2600;
+			scanMode = BASIC_SCAN;
 			ResetAndStartCapture(hComm, BASIC_SCAN);
 #else
 			int samples = 2600;
+			scanMode = EXPRESS_SCAN;
 			ResetAndStartCapture(hComm, EXPRESS_SCAN);
 #endif
+			
+#define numberOfScans 1
 
-#define numberOfScans 2
-			memset(lineBuffer, 0, samples);
+			memset(lineBuffer, 0, sizeof(lineBuffer));
 			int bytesInLine;
 			for (int scanCount = 0; scanCount < numberOfScans; scanCount++)
 			{
 #ifdef DO_BASIC
 				getRawBasicScanLineOfData(hComm, samples);
 #else
-				getRawExpressScanLineOfData(hComm, Samples);
+				getRawExpressScanLineOfData(hComm, samples);
 #endif
-				system("cls");
-				PrintRawBuffer(SerialBuffer, samples);
+			//	system("cls");
+				PrintRawBuffer(SerialBuffer, samples, scanMode);
 
 #ifdef DO_BASIC 
 				bytesInLine = TransferBasicArrayToLine(SerialBuffer, lineBuffer, 2);
@@ -903,7 +1214,9 @@ int getRawExpressScanLineOfData(HANDLE hComm, int numChars)
 				bytesInLine = TransferExpressArrayToLine(SerialBuffer, lineBuffer, 1);
 #endif
 			}
-			system("cls");
+			StopAndGetLidarInfo(hComm);
+			//while (1);
+			//system("cls");
 			DisplayLineQuality(lineBuffer, bytesInLine / 5, 0, 180, 80, 10);
 
 		//	system("cls");
@@ -915,4 +1228,22 @@ int getRawExpressScanLineOfData(HANDLE hComm, int numChars)
 			CloseHandle(hComm);//Closing the Serial Port
 			printf("\n +==========================================+\n");
 			_getch();
-		}//End of Main()
+			} // end of main
+#else
+
+
+
+void main()
+{
+
+	bool testBasicCommand();
+
+	testBasicCommand();
+
+
+
+} // end of main
+
+#endif
+
+	
