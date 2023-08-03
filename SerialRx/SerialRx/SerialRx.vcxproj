@@ -127,8 +127,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="rplidar_c_driver.c" />
     <ClCompile Include="SerialRx.c" />
     <ClCompile Include="ExpressSample.c" />
+    <ClCompile Include="serial.c" />
+    <ClCompile Include="rplidar_c_test.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="inc\rplidar_cmd.h" />
+    <ClInclude Include="inc\rplidar_protocol.h" />
+    <ClInclude Include="inc\rptypes.h" />
+    <ClInclude Include="rplidar_driver_impl.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
