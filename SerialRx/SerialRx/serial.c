@@ -138,7 +138,7 @@ uint8_t rxBuffer[50] = { 0 };
 uint8_t rxAllBuffer[1000] = { 0 };
 uint16_t rxCount = 0;
 
-uint8_t lidarSerial_read()
+int lidarSerial_read()
 {
 	DWORD NoBytesExpected = 1;
 	DWORD NoBytesRecieved = 0;

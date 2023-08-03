@@ -97,12 +97,12 @@ typedef _u32            _word_size_t;
 #endif
 
 
-typedef uint16_t u_result;
+typedef uint32_t u_result;
 //typedef uint16_t size_t;
 
 
 #define RESULT_OK              0
-#define RESULT_FAIL_BIT        0x8000
+#define RESULT_FAIL_BIT        0x80000000
 #define RESULT_ALREADY_DONE    0x20
 #define RESULT_INVALID_DATA    (0x8000 | RESULT_FAIL_BIT)
 #define RESULT_OPERATION_FAIL  (0x8001 | RESULT_FAIL_BIT)

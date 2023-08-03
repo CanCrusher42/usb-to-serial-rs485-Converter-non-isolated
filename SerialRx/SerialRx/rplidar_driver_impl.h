@@ -118,35 +118,36 @@ struct RplidarScanMode {
 
 
 
-#if 0
-    u_result getSampleDuration_uS(rplidar_response_sample_rate_t & rateInfo, _u32 timeout = DEFAULT_TIMEOUT);
-    u_result startScanNormal(bool force, _u32 timeout = DEFAULT_TIMEOUT);
-    u_result stop(_u32 timeout = DEFAULT_TIMEOUT);
-    u_result grabScanData(rplidar_response_measurement_node_hq_t * nodebuffer, size_t & count, _u32 timeout = DEFAULT_TIMEOUT);
-    u_result grabScanExpressData(rplidar_response_measurement_node_hq_t * nodebuffer, size_t & count, _u32 timeout = DEFAULT_TIMEOUT);
+
+    u_result getSampleDuration_uS(rplidar_response_sample_rate_t * rateInfo, _u32 timeout);
+    u_result startScanNormal(bool force, _u32 timeout );
+    u_result stop(_u32 timeout);
+    u_result grabScanData(rplidar_response_measurement_node_hq_t * nodebuffer, size_t * count, _u32 timeout );
+    u_result grabScanExpressData(rplidar_response_measurement_node_hq_t * nodebuffer, size_t * count, _u32 timeout );
 
     u_result loopScanData();
     u_result loopScanExpressData();
 
 //protected:
-#endif
+
 
     u_result _sendCommand(_u8 cmd, void * payload , size_t payloadsize );
 
-
-#if 0
     void     _disableDataGrabbing();
+#if 0
+    
 
     u_result _waitResponseHeader(rplidar_ans_header_t * header, _u32 timeout = DEFAULT_TIMEOUT);
     u_result _cacheScanData();
-    u_result _waitScanData(rplidar_response_measurement_node_t * nodebuffer, size_t & count, _u32 timeout = DEFAULT_TIMEOUT);
-    u_result _waitNode(rplidar_response_measurement_node_t * node, _u32 timeout = DEFAULT_TIMEOUT);
+#endif
+    u_result _waitScanData(rplidar_response_measurement_node_t * nodebuffer, size_t * count, _u32 timeout);
+    u_result _waitNode(rplidar_response_measurement_node_t * node, _u32 timeout );
     u_result  _cacheCapsuledScanData();
-    u_result _waitCapsuledNode(rplidar_response_capsule_measurement_nodes_t & node, _u32 timeout = DEFAULT_TIMEOUT);
-    int _getSyncBitByAngle(const int current_angle_q16, const int angleInc_q16);
-    void     _capsuleToNormal(const rplidar_response_capsule_measurement_nodes_t & capsule, rplidar_response_measurement_node_hq_t *nodebuffer, size_t &nodeCount);
-    void     _dense_capsuleToNormal(const rplidar_response_capsule_measurement_nodes_t & capsule, rplidar_response_measurement_node_hq_t *nodebuffer, size_t &nodeCount);
-    
+    u_result _waitCapsuledNode(rplidar_response_capsule_measurement_nodes_t * node, _u32 timeout);
+    int       _getSyncBitByAngle(int current_angle_q16, int angleInc_q16);
+    void     _capsuleToNormal(rplidar_response_capsule_measurement_nodes_t * capsule, rplidar_response_measurement_node_hq_t *nodebuffer, size_t *nodeCount);
+    void     _dense_capsuleToNormal(const rplidar_response_capsule_measurement_nodes_t * capsule, rplidar_response_measurement_node_hq_t *nodebuffer, size_t *nodeCount);
+#if 0    
     u_result _waitHqNode(rplidar_response_hq_capsule_measurement_nodes_t & node, _u32 timeout = DEFAULT_TIMEOUT);
     void     _HqToNormal(const rplidar_response_hq_capsule_measurement_nodes_t & node_hq, rplidar_response_measurement_node_hq_t *nodebuffer, size_t &nodeCount);
 
