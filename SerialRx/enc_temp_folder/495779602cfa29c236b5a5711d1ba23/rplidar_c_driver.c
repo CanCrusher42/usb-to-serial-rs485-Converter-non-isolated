@@ -374,10 +374,6 @@ u_result loopScanExpressData()
     size_t count = 512;
     _capsuleToNormal(&capsule_node, nodesHq, &count);
 
-    //_cached_scan_node_hq_buf is an array of the last XYZ hq buffers or samples recorded.
-    // Basically, this code is decoding the last capture and storing it for later use.
-    // If I detect that no data here is in the 0-180 degree, I could set a variable saying "collecting un usable data"
-    // If I only want to store 0-180 degree data at any resoulition, this is where I would add it.
     for (size_t pos = 0; pos < count; ++pos) {
         _cached_scan_node_hq_buf[_cached_scan_node_hq_count++] = nodesHq[pos];
         if (_cached_scan_node_hq_count >= _countof(_cached_scan_node_hq_buf)) {

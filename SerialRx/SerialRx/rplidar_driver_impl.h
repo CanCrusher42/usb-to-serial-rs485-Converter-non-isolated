@@ -112,7 +112,7 @@ struct RplidarScanMode {
 
 
 //    u_result startScan(bool force, bool useTypicalScan, _u32 options = 0, RplidarScanMode* outUsedScanMode = NULL);
-//    u_result startScanExpress(bool force, _u16 scanMode, _u32 options = 0, RplidarScanMode* outUsedScanMode = NULL, _u32 timeout = DEFAULT_TIMEOUT);
+      u_result startScanExpress(bool force, _u16 scanMode, _u32 options, struct RplidarScanMode* outUsedScanMode , _u32 timeout );
 //    u_result getHealth(rplidar_response_device_health_t* health, _u32 timeout );
 //    u_result getDeviceInfo(rplidar_response_device_info_t* info, _u32 timeout );
 

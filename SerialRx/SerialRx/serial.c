@@ -110,7 +110,7 @@ bool OpenLpLidar(/*HANDLE hComm*/)
 
 	/*------------------------------------ Setting Receive Mask ----------------------------------------------*/
 
-	Status = SetCommMask(hComm, EV_RXCHAR); //Configure Windows to Monitor the serial device for Character Reception
+	 Status = SetCommMask(hComm, EV_RXCHAR); //Configure Windows to Monitor the serial device for Character Reception
 
 	if (Status == FALSE)
 		printf("\n\n    Error! in Setting CommMask");
@@ -121,10 +121,28 @@ bool OpenLpLidar(/*HANDLE hComm*/)
 
 }
 
+
+uint8_t rxBuffer[50] = { 0 };
+uint8_t rxAllBuffer[512] = { 0 };
+uint32_t rxTimeStamps[512] = { 0 };
+uint16_t rxCount = 0;
+uint8_t txAllBuffer[512] = { 0 };
+uint16_t txCount = 0;
+uint32_t txTimeStamps[512] = { 0 };
+
+
 void lidarSerial_write(uint8_t* header, uint16_t length)
 {
 	DWORD dNoOFBytestoWrite = length;
 	DWORD  dNoOfBytesWritten = 0;
+
+	for (int i = 0; i < length; i++)
+	{
+		txTimeStamps[txCount] = GetTickCount();
+		txAllBuffer[txCount++] = header[i];
+		txCount &= 0x1FF;
+	}
+
 
 	bool Status = WriteFile(hComm,               // Handle to the Serialport
 		header,            // Data to be written to the port 
@@ -132,22 +150,32 @@ void lidarSerial_write(uint8_t* header, uint16_t length)
 		&dNoOfBytesWritten,  // No of bytes written to the port
 		NULL);
 
-};
+	if (dNoOFBytestoWrite != dNoOfBytesWritten)
+	{
+		printf("SOMETHING BAD HAS HAPPENED.  Not ALL DATA WRITTEN\n");
+	}
 
-uint8_t rxBuffer[50] = { 0 };
-uint8_t rxAllBuffer[1000] = { 0 };
-uint16_t rxCount = 0;
+};
 
 int lidarSerial_read()
 {
 	DWORD NoBytesExpected = 1;
 	DWORD NoBytesRecieved = 0;
 	bool Status;
-	//bool Status = SetCommMask(hComm, EV_RXCHAR); //Configure Windows to Monitor the serial device for Character Reception
-
+	//Status = SetCommMask(hComm, EV_RXCHAR); //Configure Windows to Monitor the serial device for Character Reception
+	rxTimeStamps[rxCount] = GetTickCount();
 	Status = ReadFile(hComm, &rxBuffer[0], NoBytesExpected, &NoBytesRecieved, NULL);
-	rxAllBuffer[rxCount++] = rxBuffer[0];
-	return rxBuffer[0];
+
+	if (NoBytesRecieved == 0)
+	{
+	  	return -1;
+	}
+	else
+	{
+		rxAllBuffer[rxCount++] = rxBuffer[0];
+		rxCount &= 0x1FF;
+		return rxBuffer[0];
+	}
 }
 
 

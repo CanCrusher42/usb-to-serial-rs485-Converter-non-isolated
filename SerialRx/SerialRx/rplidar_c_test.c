@@ -15,7 +15,7 @@ bool testBasicCommandHealth()
 
 	if (isConnected())
 	{
-		u_result result = reset(1000);
+		u_result result = 0;// = reset(1000);
 		if (result == 0)
 		{
 			result = getHealth(&healthinfo, 100);
@@ -49,14 +49,26 @@ bool testBasicCommandInfo()
 	return false;
 }
 
+bool testExpressScanMode()
+{
+	u_result result = startScanExpress(false, RPLIDAR_CONF_SCAN_COMMAND_EXPRESS, 0, NULL, 200);
+
+
+	result = loopScanExpressData();
+	result = loopScanExpressData();
+	return true;
+}
 bool runAllTests()
 {
 	bool result;
 	result = rb_begin();
 	if (result)
 	{
+		reset(100);
+		printf("\nStarting Tests\n\n");
 		result = testBasicCommandHealth();
 		result = testBasicCommandInfo();
+		result = testExpressScanMode();
 		return result;
 	}
 	else
