@@ -565,54 +565,6 @@ void RPLidar::_capsuleToNormal(const rplidar_response_capsule_measurement_nodes_
     _is_previous_capsuledataRdy = true;
 }
 
-void RPLidar::_dense_capsuleToNormal(const rplidar_response_capsule_measurement_nodes_t & capsule, rplidar_response_measurement_node_hq_t *nodebuffer, size_t &nodeCount)
-{
-    const rplidar_response_dense_capsule_measurement_nodes_t *dense_capsule = reinterpret_cast<const rplidar_response_dense_capsule_measurement_nodes_t*>(&capsule);
-    nodeCount = 0;
-    if (_is_previous_capsuledataRdy) {
-        int diffAngle_q8;
-        int currentStartAngle_q8 = ((dense_capsule->start_angle_sync_q6 & 0x7FFF) << 2);
-        int prevStartAngle_q8 = ((_cached_previous_dense_capsuledata.start_angle_sync_q6 & 0x7FFF) << 2);
-
-        diffAngle_q8 = (currentStartAngle_q8)-(prevStartAngle_q8);
-        if (prevStartAngle_q8 >  currentStartAngle_q8) {
-            diffAngle_q8 += (360 << 8);
-        }
-
-        int angleInc_q16 = (diffAngle_q8 << 8)/40;
-        int currentAngle_raw_q16 = (prevStartAngle_q8 << 8);
-        for (size_t pos = 0; pos < _countof(_cached_previous_dense_capsuledata.cabins); ++pos)
-        {
-            int dist_q2;
-            int angle_q6;
-            int syncBit;
-            const int dist = static_cast<const int>(_cached_previous_dense_capsuledata.cabins[pos].distance);
-            dist_q2 = dist << 2;
-            angle_q6 = (currentAngle_raw_q16 >> 10);
-            syncBit = _getSyncBitByAngle(currentAngle_raw_q16, angleInc_q16);
-            currentAngle_raw_q16 += angleInc_q16;
-
-            if (angle_q6 < 0) angle_q6 += (360 << 6);
-            if (angle_q6 >= (360 << 6)) angle_q6 -= (360 << 6);
-
-            
-
-            rplidar_response_measurement_node_hq_t node;
-
-            node.angle_z_q14 = _u16((angle_q6 << 8) / 90);
-            node.flag = (syncBit | ((!syncBit) << 1));
-            node.quality = dist_q2 ? (0x2f << RPLIDAR_RESP_MEASUREMENT_QUALITY_SHIFT) : 0;
-            node.dist_mm_q2 = dist_q2;
-
-            nodebuffer[nodeCount++] = node;
-            
-
-        }
-    }
-
-    _cached_previous_dense_capsuledata = *dense_capsule;
-    _is_previous_capsuledataRdy = true;
-}
 
 //CRC calculate
 static _u32 table[256];//crc32_table

@@ -10,8 +10,34 @@
 
 int millis();
 bool OpenLpLidar();
+int lidarClear_serial();
+// Class Variables
 
 
+bool     _isConnected;
+bool     _isSupportingMotorCtrl;
+bool     _isScanning;
+bool     _isTofLidar;
+
+rplidar_response_measurement_node_hq_t   _cached_scan_node_hq_buf[2048];
+_u16                                   _cached_scan_node_hq_count;
+
+_u16                    _cached_sampleduration_std;
+_u16                    _cached_sampleduration_express;
+_u8                     _cached_express_flag;
+float                   _cached_current_us_per_sample;
+
+rplidar_response_capsule_measurement_nodes_t _cached_previous_capsuledata;
+rplidar_response_dense_capsule_measurement_nodes_t _cached_previous_dense_capsuledata;
+rplidar_response_ultra_capsule_measurement_nodes_t _cached_previous_ultracapsuledata;
+rplidar_response_hq_capsule_measurement_nodes_t _cached_previous_Hqdata;
+bool                                         _is_previous_capsuledataRdy;
+bool                                         _is_previous_HqdataRdy;
+bool                                         _syncBit_is_finded;
+
+uint16_t _magValue[180 * 2];
+uint16_t _angValue[180 * 2];
+uint16_t scans = 0;
 #if !defined(_countof)
 #define _countof(_Array) (sizeof(_Array) / sizeof(_Array[0]))
 #endif
@@ -378,8 +404,16 @@ u_result loopScanExpressData()
     // Basically, this code is decoding the last capture and storing it for later use.
     // If I detect that no data here is in the 0-180 degree, I could set a variable saying "collecting un usable data"
     // If I only want to store 0-180 degree data at any resoulition, this is where I would add it.
+    // there are 2048 _cached_scan_node_hq_buf values currently.
+
     for (size_t pos = 0; pos < count; ++pos) {
         _cached_scan_node_hq_buf[_cached_scan_node_hq_count++] = nodesHq[pos];
+        if (nodesHq[pos].dist_mm_q2 > 0)
+        {
+            _magValue[nodesHq[pos].angle_z_q14 >> 6] = nodesHq[pos].dist_mm_q2;
+            _angValue[nodesHq[pos].angle_z_q14 >> 6] = nodesHq[pos].angle_z_q14 >> 6;
+
+        }
         if (_cached_scan_node_hq_count >= _countof(_cached_scan_node_hq_buf)) {
             _cached_scan_node_hq_count = 0;
         }
@@ -482,6 +516,11 @@ void _capsuleToNormal(rplidar_response_capsule_measurement_nodes_t* capsule, rpl
         int currentStartAngle_q8 = ((capsule->start_angle_sync_q6 & 0x7FFF) << 2);
         int prevStartAngle_q8 = ((_cached_previous_capsuledata.start_angle_sync_q6 & 0x7FFF) << 2);
 
+        if (prevStartAngle_q8 > currentStartAngle_q8)
+        {
+            printf("*");
+            scans++;
+        }
         diffAngle_q8 = (currentStartAngle_q8)-(prevStartAngle_q8);
         if (prevStartAngle_q8 > currentStartAngle_q8) {
             diffAngle_q8 += (360 << 8);
@@ -531,56 +570,6 @@ void _capsuleToNormal(rplidar_response_capsule_measurement_nodes_t* capsule, rpl
     }
 
     _cached_previous_capsuledata = *capsule;
-    _is_previous_capsuledataRdy = true;
-}
-
-/* Not Used*/
-void _dense_capsuleToNormal(const rplidar_response_capsule_measurement_nodes_t* capsule, rplidar_response_measurement_node_hq_t* nodebuffer, size_t* nodeCount)
-{
-    const rplidar_response_dense_capsule_measurement_nodes_t* dense_capsule = capsule;
-    *nodeCount = 0;
-    if (_is_previous_capsuledataRdy) {
-        int diffAngle_q8;
-        int currentStartAngle_q8 = ((dense_capsule->start_angle_sync_q6 & 0x7FFF) << 2);
-        int prevStartAngle_q8 = ((_cached_previous_dense_capsuledata.start_angle_sync_q6 & 0x7FFF) << 2);
-
-        diffAngle_q8 = (currentStartAngle_q8)-(prevStartAngle_q8);
-        if (prevStartAngle_q8 > currentStartAngle_q8) {
-            diffAngle_q8 += (360 << 8);
-        }
-
-        int angleInc_q16 = (diffAngle_q8 << 8) / 40;
-        int currentAngle_raw_q16 = (prevStartAngle_q8 << 8);
-        for (size_t pos = 0; pos < _countof(_cached_previous_dense_capsuledata.cabins); ++pos)
-        {
-            int dist_q2;
-            int angle_q6;
-            int syncBit;
-            const int dist = (const int)_cached_previous_dense_capsuledata.cabins[pos].distance;
-            dist_q2 = dist << 2;
-            angle_q6 = (currentAngle_raw_q16 >> 10);
-            syncBit = _getSyncBitByAngle(currentAngle_raw_q16, angleInc_q16);
-            currentAngle_raw_q16 += angleInc_q16;
-
-            if (angle_q6 < 0) angle_q6 += (360 << 6);
-            if (angle_q6 >= (360 << 6)) angle_q6 -= (360 << 6);
-
-
-
-            rplidar_response_measurement_node_hq_t node;
-
-            node.angle_z_q14 = (_u16)((angle_q6 << 8) / 90);
-            node.flag = (syncBit | ((!syncBit) << 1));
-            node.quality = dist_q2 ? (0x2f << RPLIDAR_RESP_MEASUREMENT_QUALITY_SHIFT) : 0;
-            node.dist_mm_q2 = dist_q2;
-
-            nodebuffer[*nodeCount++] = node;
-
-
-        }
-    }
-
-    _cached_previous_dense_capsuledata = *dense_capsule;
     _is_previous_capsuledataRdy = true;
 }
 
@@ -724,7 +713,11 @@ u_result stop(_u32 timeout)
         if (IS_FAIL(ans = _sendCommand(RPLIDAR_CMD_STOP,NULL, 0))) {
             return ans;
         }
+        lidarClear_serial();
+
     }
+
+
     return RESULT_OK;
 }
 

@@ -53,30 +53,6 @@ struct RplidarScanMode {
 
 
 
-    // Class Variables
-
-    bool     _isConnected;
-    bool     _isSupportingMotorCtrl;
-    bool     _isScanning;
-    bool     _isTofLidar;
-
-    rplidar_response_measurement_node_hq_t   _cached_scan_node_hq_buf[2048];
-    _u16                                   _cached_scan_node_hq_count;
-
-    _u16                    _cached_sampleduration_std;
-    _u16                    _cached_sampleduration_express;
-    _u8                     _cached_express_flag;
-    float                   _cached_current_us_per_sample;
-
-    rplidar_response_capsule_measurement_nodes_t _cached_previous_capsuledata;
-    rplidar_response_dense_capsule_measurement_nodes_t _cached_previous_dense_capsuledata;
-    rplidar_response_ultra_capsule_measurement_nodes_t _cached_previous_ultracapsuledata;
-    rplidar_response_hq_capsule_measurement_nodes_t _cached_previous_Hqdata;
-    bool                                         _is_previous_capsuledataRdy;
-    bool                                         _is_previous_HqdataRdy;
-    bool                                         _syncBit_is_finded;
-
-
 
 
 //class RPLidar

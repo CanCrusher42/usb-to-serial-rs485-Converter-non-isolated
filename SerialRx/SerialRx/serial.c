@@ -178,6 +178,10 @@ int lidarSerial_read()
 	}
 }
 
-
+int lidarClear_serial()
+{
+	bool success = PurgeComm(hComm, PURGE_RXCLEAR);
+	return success;
+}
 
 #endif

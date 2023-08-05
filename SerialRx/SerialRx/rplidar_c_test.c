@@ -15,6 +15,7 @@ bool testBasicCommandHealth()
 
 	if (isConnected())
 	{
+		stop(200);
 		u_result result = 0;// = reset(1000);
 		if (result == 0)
 		{
@@ -48,14 +49,26 @@ bool testBasicCommandInfo()
 	}
 	return false;
 }
-
+extern uint16_t scans;
 bool testExpressScanMode()
 {
+	int loopCount = 0;
 	u_result result = startScanExpress(false, RPLIDAR_CONF_SCAN_COMMAND_EXPRESS, 0, NULL, 200);
+	int startTime, endTime;
 
+	startTime = GetTickCount();
+	scans == 0;
+	while (loopCount < 200)
+	{
+		result = loopScanExpressData();
+		result = loopScanExpressData();
+		loopCount += 2;
+		printf("_cached_scan_node_hq_count = %d\n", loopCount);
+	}
+	endTime = GetTickCount();
+	printf("Delta Time = %d scans = %d\n", endTime - startTime, scans);
+	printf("ScanRate = %d\n", scans/((endTime-startTime)/1000));
 
-	result = loopScanExpressData();
-	result = loopScanExpressData();
 	return true;
 }
 bool runAllTests()
