@@ -104,6 +104,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -132,8 +133,10 @@
     <ClCompile Include="ExpressSample.c" />
     <ClCompile Include="serial.c" />
     <ClCompile Include="rplidar_c_test.c" />
+    <ClCompile Include="scan_display.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="lp_defines.h" />
     <ClInclude Include="inc\rplidar_cmd.h" />
     <ClInclude Include="inc\rplidar_protocol.h" />
     <ClInclude Include="inc\rptypes.h" />

@@ -2,6 +2,8 @@
 #include "inc/rplidar_protocol.h"
 #include "inc/rplidar_cmd.h"
 #include "rplidar_driver_impl.h"
+#include "lp_defines.h"
+
 #include <math.h>
 #include <stdbool.h>
 #include <string.h>
@@ -28,12 +30,12 @@ _u8                     _cached_express_flag;
 float                   _cached_current_us_per_sample;
 
 rplidar_response_capsule_measurement_nodes_t _cached_previous_capsuledata;
-rplidar_response_dense_capsule_measurement_nodes_t _cached_previous_dense_capsuledata;
-rplidar_response_ultra_capsule_measurement_nodes_t _cached_previous_ultracapsuledata;
 rplidar_response_hq_capsule_measurement_nodes_t _cached_previous_Hqdata;
 bool                                         _is_previous_capsuledataRdy;
 bool                                         _is_previous_HqdataRdy;
 bool                                         _syncBit_is_finded;
+
+rplidar_response_measurement_node_t finalLineData[SAMPLES_PER_DEGREE * 180];
 
 uint16_t _magValue[180 * 2];
 uint16_t _angValue[180 * 2];
@@ -408,7 +410,7 @@ u_result loopScanExpressData()
 
     for (size_t pos = 0; pos < count; ++pos) {
         _cached_scan_node_hq_buf[_cached_scan_node_hq_count++] = nodesHq[pos];
-        if (nodesHq[pos].dist_mm_q2 > 0)
+        if ((nodesHq[pos].dist_mm_q2 > 0) && (_magValue[nodesHq[pos].angle_z_q14 >> 6]==0))
         {
             _magValue[nodesHq[pos].angle_z_q14 >> 6] = nodesHq[pos].dist_mm_q2;
             _angValue[nodesHq[pos].angle_z_q14 >> 6] = nodesHq[pos].angle_z_q14 >> 6;
@@ -541,6 +543,72 @@ void _capsuleToNormal(rplidar_response_capsule_measurement_nodes_t* capsule, rpl
             int angle_offset2_q3 = ((_cached_previous_capsuledata.cabins[pos].offset_angles_q3 >> 4) | ((_cached_previous_capsuledata.cabins[pos].distance_angle_2 & 0x3) << 4));
 
             int syncBit_check_threshold = (int)((2 << 16) / angleInc_q16) + 1;//find syncBit in 0~1 degree
+
+            angle_q16[0] = (currentAngle_raw_q16 - (angle_offset1_q3 << 13));
+            syncBit[0] = _getSyncBitByAngle(currentAngle_raw_q16, angleInc_q16);
+            currentAngle_raw_q16 += angleInc_q16;
+
+            angle_q16[1] = (currentAngle_raw_q16 - (angle_offset2_q3 << 13));
+            syncBit[1] = _getSyncBitByAngle(currentAngle_raw_q16, angleInc_q16);
+            currentAngle_raw_q16 += angleInc_q16;
+
+            for (int cpos = 0; cpos < 2; ++cpos) {
+
+                if (angle_q16[cpos] < 0) angle_q16[cpos] += (360 << 16);
+                if (angle_q16[cpos] >= (360 << 16)) angle_q16[cpos] -= (360 << 16);
+
+                rplidar_response_measurement_node_hq_t node;
+
+                node.angle_z_q14 = (_u16)((angle_q16[cpos] >> 2) / 90);
+                node.flag = (syncBit[cpos] | ((!syncBit[cpos]) << 1));
+                node.quality = dist_q2[cpos] ? (0x2f << RPLIDAR_RESP_MEASUREMENT_QUALITY_SHIFT) : 0;
+                node.dist_mm_q2 = dist_q2[cpos];
+
+                nodebuffer[*nodeCount] = node;
+                *nodeCount = *nodeCount + 1;
+            }
+
+        }
+    }
+
+    _cached_previous_capsuledata = *capsule;
+    _is_previous_capsuledataRdy = true;
+}
+
+
+void _capsuleToNormal16(rplidar_response_capsule_measurement_nodes_t* capsule, rplidar_response_measurement_node_hq_t* nodebuffer, size_t* nodeCount)
+{
+    *nodeCount = 0;
+    if (_is_previous_capsuledataRdy) {
+        int32_t diffAngle_q8;
+        int32_t currentStartAngle_q8 = ((capsule->start_angle_sync_q6 & 0x7FFF) << 2);
+        int32_t prevStartAngle_q8 = ((_cached_previous_capsuledata.start_angle_sync_q6 & 0x7FFF) << 2);
+
+        if (prevStartAngle_q8 > currentStartAngle_q8)
+        {
+            printf("*");
+            scans++;
+        }
+        diffAngle_q8 = (currentStartAngle_q8)-(prevStartAngle_q8);
+        if (prevStartAngle_q8 > currentStartAngle_q8) {
+            diffAngle_q8 += (360 << 8);
+        }
+
+        int32_t angleInc_q16 = (diffAngle_q8 << 3);
+        int32_t currentAngle_raw_q16 = (prevStartAngle_q8 << 8);
+        for (size_t pos = 0; pos < _countof(_cached_previous_capsuledata.cabins); ++pos)
+        {
+            int32_t dist_q2[2];
+            int32_t angle_q16[2];
+            int32_t syncBit[2] = { 0,0 };
+
+            dist_q2[0] = (_cached_previous_capsuledata.cabins[pos].distance_angle_1 & 0xFFFC);
+            dist_q2[1] = (_cached_previous_capsuledata.cabins[pos].distance_angle_2 & 0xFFFC);
+
+            int32_t angle_offset1_q3 = ((_cached_previous_capsuledata.cabins[pos].offset_angles_q3 & 0xF) | ((_cached_previous_capsuledata.cabins[pos].distance_angle_1 & 0x3) << 4));
+            int32_t angle_offset2_q3 = ((_cached_previous_capsuledata.cabins[pos].offset_angles_q3 >> 4) | ((_cached_previous_capsuledata.cabins[pos].distance_angle_2 & 0x3) << 4));
+
+            int32_t syncBit_check_threshold = (int32_t)((2 << 16) / angleInc_q16) + 1;//find syncBit in 0~1 degree
 
             angle_q16[0] = (currentAngle_raw_q16 - (angle_offset1_q3 << 13));
             syncBit[0] = _getSyncBitByAngle(currentAngle_raw_q16, angleInc_q16);

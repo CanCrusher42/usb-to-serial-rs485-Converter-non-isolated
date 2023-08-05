@@ -33,7 +33,10 @@
  */
 
 #pragma once
+#ifndef RPLIDAR_CMD_H
+#define RPLIDAR_CMD_H
 
+#include "rptypes.h"
 #include "rplidar_protocol.h"
 
 // Commands
@@ -300,3 +303,4 @@ typedef struct _rplidar_response_device_health_t {
 #pragma pack()
 #endif
 
+#endif
