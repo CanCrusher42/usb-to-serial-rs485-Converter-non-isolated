@@ -5,6 +5,9 @@
 #include <math.h>
 #include "lp_defines.h"
 #include "inc/rplidar_cmd.h"
+#include "string.h"
+
+
 extern int maxValue ;
 extern rplidar_response_measurement_node_t finalLineData[SAMPLES_PER_DEGREE * 180];
 
@@ -253,22 +256,30 @@ void DisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t minQualit
 	// Middle Angle = startAngle+90;
 	// Get Max Neg and Pos X
 	// Get Max Neg and Pos Y
-	int xValue[180] = { 0 };
-	int yValue[180] = { 0 };
+	int xValue[182] = { 0 };
+	int yValue[182] = { 0 };
 	int minX = 1000, maxX = -1000;
 	int maxY = -1000;
 	int maxYcol = 0;
 	uint16_t angleOffset = startAngle;
 	int yPerRow, xPerColumn;
-
+	char displayLine[200];
+	float ang;
 	// Get Scale Values
 	for (uint16_t angle = startAngle; angle < (startAngle + 180); angle++)
 	{
-		float ang = (finalLineData[angle].angle_q6_checkbit>>6)  ;
-		ang *= 0.0174533;
-		xValue[angle - startAngle] = round(-1.0 * cos(ang) * finalLineData[angle].distance_q2);
-		yValue[angle - startAngle] = round(       sin(ang) * finalLineData[angle].distance_q2);
-
+		if ((finalLineData[angle].angle_q6_checkbit >> 6) != 0)
+		{
+			ang = (float)(finalLineData[angle].angle_q6_checkbit >> 6);
+			ang =  ang * (float)0.0174533;
+			xValue[angle - startAngle] = (int)trunc(-1.0 * cos(ang) * (float)(finalLineData[angle].distance_q2 >> 2));
+			yValue[angle - startAngle] = (int)trunc(       sin(ang) * (float)(finalLineData[angle].distance_q2 >> 2));
+		}
+		else
+		{
+			xValue[angle - startAngle] = 0;
+			yValue[angle - startAngle] = 0;
+		}
 		if (xValue[angle - startAngle] < minX)
 			minX = xValue[angle - startAngle];
 		if (xValue[angle - startAngle] > maxX)
@@ -283,20 +294,21 @@ void DisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t minQualit
 
 	printf("maxY = %d @ %d\n", maxY, maxYcol);
 	yPerRow = maxY / maxHeight;
+
 	int absBounds = max(abs(minX), abs(maxX));
-	xPerColumn = (max(abs(minX), abs(maxX)) * 2) / 180; // 180 columns
-	yPerRow = maxY / maxHeight;
+	// Need to force round up.
+	xPerColumn = ((absBounds * 2)+179) / 180; // 180 columns
 
 	int rowUpper, rowLower;
-
+	int divX, divY;
 	int colStart = xPerColumn * (-90);
-	char displayLine[200];
+	
 
 	for (int angle = 0; angle < 180; angle++)
 	{
-		int divX = (xValue[angle]-colStart) / xPerColumn;
-		int divY = (yValue[angle] / yPerRow);
-	//	printf("%d %d (%3.2f) %d  %d %d - mod %d %d\n", angle, finalLineData[angle].angle_q6_checkbit, (1.0*finalLineData[angle].angle_q6_checkbit)/64.0, finalLineData[angle].distance_q2,  xValue[angle], yValue[angle], divX, divY);
+		divX = (xValue[angle]-colStart) / xPerColumn;
+		divY = (yValue[angle] / yPerRow);
+		printf("%d %d (%3.2f) %d  %d %d - mod %d %d\n", angle, finalLineData[angle].angle_q6_checkbit, (1.0*finalLineData[angle].angle_q6_checkbit)/64.0, finalLineData[angle].distance_q2,  xValue[angle], yValue[angle], divX, divY);
 	}
 
 	// Now paint from the top row (Farthest away from the sensor first)
@@ -305,34 +317,19 @@ void DisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t minQualit
 	{
 		rowUpper = row * yPerRow;
 		rowLower = (row - 1) * yPerRow;
-		int k = 0;
-		memset(displayLine, ' ', 185);
-		for (int col = 0; col < 180; col++)
+		memset(displayLine, ' ', 195);
+		for (uint16_t col = 0; col < 180; col++)
 		{
 			//displayLine[col] = ' ';
-			int divX = (xValue[col] - colStart) / xPerColumn;
-			int divY = (yValue[col] / yPerRow);
+			divX = (xValue[col] - colStart) / xPerColumn;
+			divY = (yValue[col] / yPerRow);
 			if (divY == row)
 			{
+				if ((divX < 0) || (divX > 180))
+					printf("ERROR %d\n\n\n\n", divX);
+				else
 				displayLine[divX] = '*';
-//				if ((divX == col) )
-//					displayLine[col] = '*';
 			}
-/* 
-			if ((yValue[col] > rowLower) && (yValue[col] <= rowUpper))
-			{
-				 k = (xValue[col] - colStart )/xPerColumn;
-				 displayLine[col] = '*';
-				//displayLine[xValue[col] - (colStart + col * xPerColumn)] = '*';
-			} */
-/*
-			if ( (yValue[col] > rowLower) && (yValue[col] <= rowUpper) && 
-				( xValue[col] >= (colStart + col * xPerColumn)) && (xValue[col] < (colStart + (col + 1) * xPerColumn)))
-			{
-				//int xDiv = (xValue[col] - colStart) / xPerColumn;
-				displayLine[col] = '*';
-
-			} */
 		}
 		if (row < 3)
 		{
@@ -348,11 +345,6 @@ void DisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t minQualit
 	}
 
 	printBottomXScale(-1 * absBounds, absBounds, 2 * absBounds / 180, 5);
-	//printf("    %s\n", displayLine);
-	//printBottomYScale(startAngle, endAngle,0);
 
-	memset(displayLine, '-', 179);
-	displayLine[180] = 0;
-	//while (1);
 }
 
