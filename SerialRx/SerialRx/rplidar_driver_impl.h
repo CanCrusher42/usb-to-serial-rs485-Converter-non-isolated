@@ -122,6 +122,7 @@ struct RplidarScanMode {
     u_result _waitCapsuledNode(rplidar_response_capsule_measurement_nodes_t * node, _u32 timeout);
     int       _getSyncBitByAngle(int current_angle_q16, int angleInc_q16);
     void     _capsuleToNormal(rplidar_response_capsule_measurement_nodes_t * capsule, rplidar_response_measurement_node_hq_t *nodebuffer, size_t *nodeCount);
+    void     _capsuleToNormal16(rplidar_response_capsule_measurement_nodes_t* capsule, rplidar_response_measurement_node_t* nodebuffer, size_t* nodeCount);
     void     _dense_capsuleToNormal(const rplidar_response_capsule_measurement_nodes_t * capsule, rplidar_response_measurement_node_hq_t *nodebuffer, size_t *nodeCount);
 #if 0    
     u_result _waitHqNode(rplidar_response_hq_capsule_measurement_nodes_t & node, _u32 timeout = DEFAULT_TIMEOUT);

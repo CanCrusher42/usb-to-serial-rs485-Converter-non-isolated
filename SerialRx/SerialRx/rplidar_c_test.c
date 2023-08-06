@@ -5,9 +5,12 @@
 
 #include <stdbool.h>
 #include <stdio.h>
-
+int GetTickCount();
 int millis() { return (20); }
 bool OpenLpLidar();
+extern rplidar_response_measurement_node_t finalLineData[1 * 180];
+
+void DisplayLineDistance(uint16_t startAngle, uint16_t endAngle, uint8_t minQuality, uint16_t maxHeight);
 
 bool testBasicCommandHealth()
 {
@@ -53,22 +56,35 @@ extern uint16_t scans;
 bool testExpressScanMode()
 {
 	int loopCount = 0;
+	int screens = 0;
+
 	u_result result = startScanExpress(false, RPLIDAR_CONF_SCAN_COMMAND_EXPRESS, 0, NULL, 200);
 	int startTime, endTime;
 
-	startTime = GetTickCount();
-	scans == 0;
-	while (loopCount < 200)
+	while (screens < 200)
 	{
-		result = loopScanExpressData();
-		result = loopScanExpressData();
-		loopCount += 2;
-		printf("_cached_scan_node_hq_count = %d\n", loopCount);
+		
+		startTime = GetTickCount();
+		scans = 0;
+		while (loopCount < 100)
+		{
+			result = loopScanExpressData6();
+			result = loopScanExpressData6();
+			loopCount += 2;
+			//printf("_cached_scan_node_hq_count = %d\n", loopCount);
+		}
+		endTime = GetTickCount();
+		//printf("Delta Time = %d scans = %d\n", endTime - startTime, scans);
+		//printf("ScanRate = %d\n", scans/((endTime-startTime)/1000));
+		system("cls");
+		//DisplayLineDistance(0, 180, 20, 50);
+		//DisplayLineAngle(0, 180, 20, 50);
+		DisplayLineToRoom(0, 180, 20, 50);
+		memset(finalLineData, 0, sizeof(finalLineData));
+		lidarClear_serial();
+		screens++;
+		loopCount = 0;
 	}
-	endTime = GetTickCount();
-	printf("Delta Time = %d scans = %d\n", endTime - startTime, scans);
-	printf("ScanRate = %d\n", scans/((endTime-startTime)/1000));
-
 	return true;
 }
 bool runAllTests()

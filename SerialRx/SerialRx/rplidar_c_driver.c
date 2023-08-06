@@ -14,7 +14,7 @@ int millis();
 bool OpenLpLidar();
 int lidarClear_serial();
 // Class Variables
-
+int maxValue = 0;
 
 bool     _isConnected;
 bool     _isSupportingMotorCtrl;
@@ -410,14 +410,48 @@ u_result loopScanExpressData()
 
     for (size_t pos = 0; pos < count; ++pos) {
         _cached_scan_node_hq_buf[_cached_scan_node_hq_count++] = nodesHq[pos];
-        if ((nodesHq[pos].dist_mm_q2 > 0) && (_magValue[nodesHq[pos].angle_z_q14 >> 6]==0))
+        if ((nodesHq[pos].dist_mm_q2 > 0) && (finalLineData[nodesHq[pos].angle_z_q14 >> 6].distance_q2 ==0))
         {
-            _magValue[nodesHq[pos].angle_z_q14 >> 6] = nodesHq[pos].dist_mm_q2;
-            _angValue[nodesHq[pos].angle_z_q14 >> 6] = nodesHq[pos].angle_z_q14 >> 6;
-
+            if ((nodesHq[pos].angle_z_q14 >> 6) < 180)
+            {
+                finalLineData[nodesHq[pos].angle_z_q14 >> 6].distance_q2 = nodesHq[pos].dist_mm_q2;
+                finalLineData[nodesHq[pos].angle_z_q14 >> 6].angle_q6_checkbit = nodesHq[pos].angle_z_q14;
+            }
         }
         if (_cached_scan_node_hq_count >= _countof(_cached_scan_node_hq_buf)) {
             _cached_scan_node_hq_count = 0;
+        }
+    }
+    return RESULT_OK;
+}
+
+// grab some express data and put it in the global structs _cached_scan_node_hq_buf
+u_result loopScanExpressData6()
+{
+    static uint16_t recvNodeCount = 0;
+    u_result ans;
+    rplidar_response_capsule_measurement_nodes_t capsule_node;
+    rplidar_response_measurement_node_t nodes[32];
+
+    if (IS_FAIL(ans = _waitCapsuledNode(&capsule_node, DEFAULT_TIMEOUT))) {
+        _isScanning = false;
+        return RESULT_OPERATION_FAIL;
+    }
+
+    size_t count = 0;
+
+    _capsuleToNormal16(&capsule_node, nodes, &count);
+
+    for (size_t pos = 0; pos < count; ++pos) {
+
+        if ((nodes[pos].distance_q2 > 0) && (finalLineData[nodes[pos].angle_q6_checkbit >> 6].distance_q2 == 0))
+        {
+            int angle= nodes[pos].angle_q6_checkbit >> 6;
+            if (angle < 180)
+            {
+                finalLineData[angle].distance_q2 = nodes[pos].distance_q2;
+                finalLineData[angle].angle_q6_checkbit = nodes[pos].angle_q6_checkbit;
+            }
         }
     }
     return RESULT_OK;
@@ -513,8 +547,10 @@ int _getSyncBitByAngle(const int current_angle_q16, const int angleInc_q16)
 void _capsuleToNormal(rplidar_response_capsule_measurement_nodes_t* capsule, rplidar_response_measurement_node_hq_t* nodebuffer, size_t* nodeCount)
 {
     *nodeCount = 0;
+
     if (_is_previous_capsuledataRdy) {
         int diffAngle_q8;
+        // Convert angle to 1 degree = 256
         int currentStartAngle_q8 = ((capsule->start_angle_sync_q6 & 0x7FFF) << 2);
         int prevStartAngle_q8 = ((_cached_previous_capsuledata.start_angle_sync_q6 & 0x7FFF) << 2);
 
@@ -528,7 +564,7 @@ void _capsuleToNormal(rplidar_response_capsule_measurement_nodes_t* capsule, rpl
             diffAngle_q8 += (360 << 8);
         }
 
-        int angleInc_q16 = (diffAngle_q8 << 3);
+        int angleInc_q16 = (diffAngle_q8 << 3);  // each capsal is divided into 32 and this << 3 = a total of << 8
         int currentAngle_raw_q16 = (prevStartAngle_q8 << 8);
         for (size_t pos = 0; pos < _countof(_cached_previous_capsuledata.cabins); ++pos)
         {
@@ -566,6 +602,9 @@ void _capsuleToNormal(rplidar_response_capsule_measurement_nodes_t* capsule, rpl
 
                 nodebuffer[*nodeCount] = node;
                 *nodeCount = *nodeCount + 1;
+                if ((node.angle_z_q14>>9) > maxValue)
+                    maxValue = node.angle_z_q14;
+
             }
 
         }
@@ -576,59 +615,61 @@ void _capsuleToNormal(rplidar_response_capsule_measurement_nodes_t* capsule, rpl
 }
 
 
-void _capsuleToNormal16(rplidar_response_capsule_measurement_nodes_t* capsule, rplidar_response_measurement_node_hq_t* nodebuffer, size_t* nodeCount)
+void _capsuleToNormal16(rplidar_response_capsule_measurement_nodes_t* capsule, rplidar_response_measurement_node_t* nodebuffer, size_t* nodeCount)
 {
     *nodeCount = 0;
     if (_is_previous_capsuledataRdy) {
-        int32_t diffAngle_q8;
-        int32_t currentStartAngle_q8 = ((capsule->start_angle_sync_q6 & 0x7FFF) << 2);
-        int32_t prevStartAngle_q8 = ((_cached_previous_capsuledata.start_angle_sync_q6 & 0x7FFF) << 2);
+        int16_t diffAngle_q6;
+        int16_t currentStartAngle_q6 = ((capsule->start_angle_sync_q6 & 0x7FFF) );
+        int16_t prevStartAngle_q6 = ((_cached_previous_capsuledata.start_angle_sync_q6 & 0x7FFF));
 
-        if (prevStartAngle_q8 > currentStartAngle_q8)
-        {
+        diffAngle_q6 = currentStartAngle_q6-prevStartAngle_q6;
+        if (prevStartAngle_q6 > currentStartAngle_q6) {
+            diffAngle_q6 += (360 << 6);
             printf("*");
             scans++;
-        }
-        diffAngle_q8 = (currentStartAngle_q8)-(prevStartAngle_q8);
-        if (prevStartAngle_q8 > currentStartAngle_q8) {
-            diffAngle_q8 += (360 << 8);
+
         }
 
-        int32_t angleInc_q16 = (diffAngle_q8 << 3);
-        int32_t currentAngle_raw_q16 = (prevStartAngle_q8 << 8);
+        int16_t angleInc_q6 = (diffAngle_q6 / 32);  // 5 bits
+
+        int16_t currentAngle_raw_q6 = (prevStartAngle_q6);
         for (size_t pos = 0; pos < _countof(_cached_previous_capsuledata.cabins); ++pos)
         {
-            int32_t dist_q2[2];
-            int32_t angle_q16[2];
-            int32_t syncBit[2] = { 0,0 };
+            int16_t dist_q2[2];
+            int16_t angle_q6[2];
+
+//            typedef struct _rplidar_response_cabin_nodes_t {
+//                _u16   distance_angle_1; // see [distance_sync flags]
+//                _u16   distance_angle_2; // see [distance_sync flags]
+//                _u8    offset_angles_q3;
+//            } __attribute__((packed)) rplidar_response_cabin_nodes_t;
+
 
             dist_q2[0] = (_cached_previous_capsuledata.cabins[pos].distance_angle_1 & 0xFFFC);
             dist_q2[1] = (_cached_previous_capsuledata.cabins[pos].distance_angle_2 & 0xFFFC);
 
-            int32_t angle_offset1_q3 = ((_cached_previous_capsuledata.cabins[pos].offset_angles_q3 & 0xF) | ((_cached_previous_capsuledata.cabins[pos].distance_angle_1 & 0x3) << 4));
-            int32_t angle_offset2_q3 = ((_cached_previous_capsuledata.cabins[pos].offset_angles_q3 >> 4) | ((_cached_previous_capsuledata.cabins[pos].distance_angle_2 & 0x3) << 4));
+            int16_t angle_offset1_q3 = ((_cached_previous_capsuledata.cabins[pos].offset_angles_q3 & 0xF) | ((_cached_previous_capsuledata.cabins[pos].distance_angle_1 & 0x3) << 4));
+            int16_t angle_offset2_q3 = ((_cached_previous_capsuledata.cabins[pos].offset_angles_q3 >> 4) | ((_cached_previous_capsuledata.cabins[pos].distance_angle_2 & 0x3) << 4));
 
-            int32_t syncBit_check_threshold = (int32_t)((2 << 16) / angleInc_q16) + 1;//find syncBit in 0~1 degree
+            
 
-            angle_q16[0] = (currentAngle_raw_q16 - (angle_offset1_q3 << 13));
-            syncBit[0] = _getSyncBitByAngle(currentAngle_raw_q16, angleInc_q16);
-            currentAngle_raw_q16 += angleInc_q16;
+            angle_q6[0] = (currentAngle_raw_q6 - (angle_offset1_q3<<3 ));
+            currentAngle_raw_q6 += angleInc_q6;
 
-            angle_q16[1] = (currentAngle_raw_q16 - (angle_offset2_q3 << 13));
-            syncBit[1] = _getSyncBitByAngle(currentAngle_raw_q16, angleInc_q16);
-            currentAngle_raw_q16 += angleInc_q16;
+            angle_q6[1] = (currentAngle_raw_q6 - (angle_offset2_q3 << 3));
+            currentAngle_raw_q6 += angleInc_q6;
 
-            for (int cpos = 0; cpos < 2; ++cpos) {
+            for (int8_t cpos = 0; cpos < 2; ++cpos) {
 
-                if (angle_q16[cpos] < 0) angle_q16[cpos] += (360 << 16);
-                if (angle_q16[cpos] >= (360 << 16)) angle_q16[cpos] -= (360 << 16);
+                if (angle_q6[cpos] < 0) angle_q6[cpos] += (360 << 6);
+                if (angle_q6[cpos] >= (360 << 6)) angle_q6[cpos] -= (360 << 6);
 
-                rplidar_response_measurement_node_hq_t node;
-
-                node.angle_z_q14 = (_u16)((angle_q16[cpos] >> 2) / 90);
-                node.flag = (syncBit[cpos] | ((!syncBit[cpos]) << 1));
-                node.quality = dist_q2[cpos] ? (0x2f << RPLIDAR_RESP_MEASUREMENT_QUALITY_SHIFT) : 0;
-                node.dist_mm_q2 = dist_q2[cpos];
+                //rplidar_response_measurement_node_hq_t node;
+                rplidar_response_measurement_node_t node;
+                node.angle_q6_checkbit = (_u16)(angle_q6[cpos]);
+                node.sync_quality = dist_q2[cpos] ? (0x2f << RPLIDAR_RESP_MEASUREMENT_QUALITY_SHIFT) : 0;
+                node.distance_q2 = dist_q2[cpos];
 
                 nodebuffer[*nodeCount] = node;
                 *nodeCount = *nodeCount + 1;
