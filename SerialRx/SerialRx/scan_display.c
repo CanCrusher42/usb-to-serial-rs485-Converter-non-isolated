@@ -90,6 +90,82 @@ void DisplayLineDistance(  uint16_t startAngle, uint16_t endAngle, uint8_t minQu
 }
 
 
+void printBottomScale(int startAngle, int endAngle, int pads)
+{
+	char displayLine[200] = { 0 };
+	// Display bottom scale
+	for (int loc = 2; loc >= 0; loc--)
+	{
+		unsigned int power = 0;
+		if (loc == 2) power = 100;
+		if (loc == 1) power = 10;
+
+		for (uint16_t cols = startAngle; cols < endAngle; cols++)
+		{
+			if (cols >= power)
+				if (power == 100)
+				{
+					displayLine[cols] = '0' + ((cols / power));
+				}
+				else if (power == 10)
+				{
+					displayLine[cols] = '0' + ((cols / power) % power);
+				}
+				else
+				{
+					displayLine[cols] = '0' + (cols % 10);
+				}
+			else
+				displayLine[cols] = '0';
+		}
+		displayLine[endAngle] = 0;
+		for (int i = 0; i < pads; i++) printf(" ");
+		printf("      %s\n", displayLine);
+
+	}
+}
+//                        -8000        8000       200
+/*
+v = 12,345;
+v /10,000 = 1     1    % 10   = 1
+v /  1000 = 12,   12   % 10   = 2
+v /   100 = 123   123  % 10   = 3
+v /    10 = 1234  1234 % 10   = 4
+v /     1 = 12345 12345% 10   = 5
+*/
+void printBottomXScale(int startX, int endX, int xPerIndex, int pads )
+{
+	char displayLine[200] = { 0 };
+	int sizeX = 180;
+	// Display bottom scale
+	for (int loc = 5; loc >= 0; loc--)
+	{
+		unsigned int power = 1;
+		if (loc == 5) power = 100000;
+		if (loc == 4) power = 10000;
+		if (loc == 3) power = 1000;
+		if (loc == 2) power = 100;
+		if (loc == 1) power = 10;
+          
+		for (uint16_t cols = 0; cols < 180; cols++)
+		{
+			int value = (startX + cols * xPerIndex);
+			int aValue = abs(value);
+
+			int t = aValue / power;
+			t = t % 10;
+			if ((aValue/power) > 0)
+				displayLine[cols] = '0' + t;
+			else 
+				displayLine[cols] = ' ';
+		}
+		displayLine[180] = 0;
+		for (int i = 0; i < pads; i++) printf(" ");
+		printf("      %s\n", displayLine);
+
+	}
+}
+
 
 void DisplayLineAngle(uint16_t startAngle, uint16_t endAngle, uint8_t minQuality, uint16_t maxHeight)
 {
@@ -181,14 +257,14 @@ void DisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t minQualit
 	int yValue[180] = { 0 };
 	int minX = 1000, maxX = -1000;
 	int maxY = -1000;
-
+	int maxYcol = 0;
 	uint16_t angleOffset = startAngle;
 	int yPerRow, xPerColumn;
 
 	// Get Scale Values
 	for (uint16_t angle = startAngle; angle < (startAngle + 180); angle++)
 	{
-		float ang = (angle - angleOffset);
+		float ang = (finalLineData[angle].angle_q6_checkbit>>6)  ;
 		ang *= 0.0174533;
 		xValue[angle - startAngle] = round(-1.0 * cos(ang) * finalLineData[angle].distance_q2);
 		yValue[angle - startAngle] = round(       sin(ang) * finalLineData[angle].distance_q2);
@@ -198,10 +274,17 @@ void DisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t minQualit
 		if (xValue[angle - startAngle] > maxX)
 			maxX = xValue[angle - startAngle];
 		if (yValue[angle - startAngle] > maxY)
+		{
 			maxY = yValue[angle - startAngle];
+			maxYcol = angle - startAngle;
+		}
+		
 	}
+
+	printf("maxY = %d @ %d\n", maxY, maxYcol);
 	yPerRow = maxY / maxHeight;
-	xPerColumn = (max(abs(minX), abs(maxX)) * 2) / 180;
+	int absBounds = max(abs(minX), abs(maxX));
+	xPerColumn = (max(abs(minX), abs(maxX)) * 2) / 180; // 180 columns
 	yPerRow = maxY / maxHeight;
 
 	int rowUpper, rowLower;
@@ -209,21 +292,47 @@ void DisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t minQualit
 	int colStart = xPerColumn * (-90);
 	char displayLine[200];
 
+	for (int angle = 0; angle < 180; angle++)
+	{
+		int divX = (xValue[angle]-colStart) / xPerColumn;
+		int divY = (yValue[angle] / yPerRow);
+	//	printf("%d %d (%3.2f) %d  %d %d - mod %d %d\n", angle, finalLineData[angle].angle_q6_checkbit, (1.0*finalLineData[angle].angle_q6_checkbit)/64.0, finalLineData[angle].distance_q2,  xValue[angle], yValue[angle], divX, divY);
+	}
+
 	// Now paint from the top row (Farthest away from the sensor first)
 
 	for (int row = maxHeight; row > 0; row--)
 	{
 		rowUpper = row * yPerRow;
 		rowLower = (row - 1) * yPerRow;
+		int k = 0;
+		memset(displayLine, ' ', 185);
 		for (int col = 0; col < 180; col++)
 		{
-			displayLine[col] = ' ';
+			//displayLine[col] = ' ';
+			int divX = (xValue[col] - colStart) / xPerColumn;
+			int divY = (yValue[col] / yPerRow);
+			if (divY == row)
+			{
+				displayLine[divX] = '*';
+//				if ((divX == col) )
+//					displayLine[col] = '*';
+			}
+/* 
 			if ((yValue[col] > rowLower) && (yValue[col] <= rowUpper))
 			{
-				int xDiv = (xValue[col] - colStart) / xPerColumn;
+				 k = (xValue[col] - colStart )/xPerColumn;
+				 displayLine[col] = '*';
+				//displayLine[xValue[col] - (colStart + col * xPerColumn)] = '*';
+			} */
+/*
+			if ( (yValue[col] > rowLower) && (yValue[col] <= rowUpper) && 
+				( xValue[col] >= (colStart + col * xPerColumn)) && (xValue[col] < (colStart + (col + 1) * xPerColumn)))
+			{
+				//int xDiv = (xValue[col] - colStart) / xPerColumn;
 				displayLine[col] = '*';
 
-			}
+			} */
 		}
 		if (row < 3)
 		{
@@ -232,13 +341,18 @@ void DisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t minQualit
 			displayLine[91] = '#';
 		}
 		displayLine[180] = 0;
-		printf("%s\n", displayLine);
+		printf("%3d %05d|", row, row * yPerRow);
+		printf("        %s\n", displayLine);
+
+
 	}
+
+	printBottomXScale(-1 * absBounds, absBounds, 2 * absBounds / 180, 5);
+	//printf("    %s\n", displayLine);
+	//printBottomYScale(startAngle, endAngle,0);
 
 	memset(displayLine, '-', 179);
 	displayLine[180] = 0;
-	printf("%s\n", displayLine);
-
-
+	//while (1);
 }
 

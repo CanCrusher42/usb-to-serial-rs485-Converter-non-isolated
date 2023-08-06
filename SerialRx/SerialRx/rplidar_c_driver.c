@@ -633,8 +633,8 @@ void _capsuleToNormal16(rplidar_response_capsule_measurement_nodes_t* capsule, r
 
         int16_t angleInc_q6 = (diffAngle_q6 / 32);  // 5 bits
 
-        int16_t currentAngle_raw_q6 = (prevStartAngle_q6);
-        for (size_t pos = 0; pos < _countof(_cached_previous_capsuledata.cabins); ++pos)
+        int16_t currentAngle_raw_q6 = prevStartAngle_q6;
+        for (size_t pos = 0; pos < 16; ++pos)
         {
             int16_t dist_q2[2];
             int16_t angle_q6[2];
@@ -651,8 +651,12 @@ void _capsuleToNormal16(rplidar_response_capsule_measurement_nodes_t* capsule, r
 
             int16_t angle_offset1_q3 = ((_cached_previous_capsuledata.cabins[pos].offset_angles_q3 & 0xF) | ((_cached_previous_capsuledata.cabins[pos].distance_angle_1 & 0x3) << 4));
             int16_t angle_offset2_q3 = ((_cached_previous_capsuledata.cabins[pos].offset_angles_q3 >> 4) | ((_cached_previous_capsuledata.cabins[pos].distance_angle_2 & 0x3) << 4));
+            // sign extend 
+            if (angle_offset1_q3 & 0x20)
+                angle_offset1_q3 |= 0xFFC0;
+            if (angle_offset2_q3 & 0x20)
+                angle_offset2_q3 |= 0xFFC0;
 
-            
 
             angle_q6[0] = (currentAngle_raw_q6 - (angle_offset1_q3<<3 ));
             currentAngle_raw_q6 += angleInc_q6;
