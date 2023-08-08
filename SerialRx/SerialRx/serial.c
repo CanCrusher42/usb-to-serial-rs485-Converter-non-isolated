@@ -24,7 +24,7 @@ HANDLE hComm;
 bool OpenLpLidar(/*HANDLE hComm*/)
 {
 	//	HANDLE hComm;                          // Handle to the Serial port
-	TCHAR* pcCommPort = TEXT("COM5");
+	TCHAR* pcCommPort = TEXT("COM9");
 	BOOL  Status;                          // Status of the various operations 
 	DWORD  dNoOfBytesWritten = 0;          // No of bytes written to the port
 	BOOL match = false;

@@ -65,6 +65,7 @@ bool testExpressScanMode()
 	{
 		
 		startTime = GetTickCount();
+		memset(finalLineData, 0, sizeof(finalLineData));
 		scans = 0;
 		while (loopCount < 100)
 		{
@@ -80,7 +81,7 @@ bool testExpressScanMode()
 		//DisplayLineDistance(0, 180, 20, 50);
 		//DisplayLineAngle(0, 180, 20, 50);
 		DisplayLineToRoom(0, 180, 20, 50);
-		memset(finalLineData, 0, sizeof(finalLineData));
+		
 		lidarClear_serial();
 		screens++;
 		loopCount = 0;

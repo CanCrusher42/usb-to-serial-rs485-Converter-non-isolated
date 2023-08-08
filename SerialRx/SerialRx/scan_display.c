@@ -299,7 +299,7 @@ void DisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t minQualit
 	// Need to force round up.
 	xPerColumn = ((absBounds * 2)+179) / 180; // 180 columns
 
-	int rowUpper, rowLower;
+//	int rowUpper, rowLower;
 	int divX, divY;
 	int colStart = xPerColumn * (-90);
 	
@@ -315,12 +315,11 @@ void DisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t minQualit
 
 	for (int row = maxHeight; row > 0; row--)
 	{
-		rowUpper = row * yPerRow;
-		rowLower = (row - 1) * yPerRow;
+//		rowUpper = row * yPerRow;
+//		rowLower = (row - 1) * yPerRow;
 		memset(displayLine, ' ', 195);
 		for (uint16_t col = 0; col < 180; col++)
 		{
-			//displayLine[col] = ' ';
 			divX = (xValue[col] - colStart) / xPerColumn;
 			divY = (yValue[col] / yPerRow);
 			if (divY == row)
@@ -328,7 +327,12 @@ void DisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t minQualit
 				if ((divX < 0) || (divX > 180))
 					printf("ERROR %d\n\n\n\n", divX);
 				else
-				displayLine[divX] = '*';
+				{
+					if (finalLineData[col].sync_quality != 0)
+						displayLine[divX] = '@';
+					else
+						displayLine[divX] = '.';
+				}
 			}
 		}
 		if (row < 3)

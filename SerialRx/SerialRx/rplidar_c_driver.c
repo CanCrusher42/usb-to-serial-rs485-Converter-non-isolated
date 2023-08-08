@@ -426,12 +426,19 @@ u_result loopScanExpressData()
 }
 
 // grab some express data and put it in the global structs _cached_scan_node_hq_buf
+// Inside box.
+int16_t insideX_left = -3000;  // cm  100cm to the meter
+int16_t insideX_right = 3000;   // cm
+int16_t inside_up = 2070;   // 150 at home, Hall by desk is 9 foot steps in sandles  (30cm per)  270 cm at work
+
 u_result loopScanExpressData6()
 {
     static uint16_t recvNodeCount = 0;
     u_result ans;
     rplidar_response_capsule_measurement_nodes_t capsule_node;
     rplidar_response_measurement_node_t nodes[32];
+    int16_t x, y;
+    float ang;
 
     if (IS_FAIL(ans = _waitCapsuledNode(&capsule_node, DEFAULT_TIMEOUT))) {
         _isScanning = false;
@@ -451,6 +458,19 @@ u_result loopScanExpressData6()
             {
                 finalLineData[angle].distance_q2 = nodes[pos].distance_q2;
                 finalLineData[angle].angle_q6_checkbit = nodes[pos].angle_q6_checkbit;
+                ang = (float)(finalLineData[angle].angle_q6_checkbit >> 6);
+                ang = ang * (float)0.0174533;
+                // If this box is in the active area mark it.
+                x = (int)trunc(-1.0 * cos(ang) * (float)(finalLineData[angle].distance_q2 >> 2));
+                y = (int)trunc(sin(ang) * (float)(finalLineData[angle].distance_q2 >> 2));
+                //x = x / 10;
+                //y = y / 10;
+                if ((insideX_left < x) && (x < insideX_right) && (y < inside_up))
+                {
+                    finalLineData[angle].sync_quality = 1;
+                }
+
+      
             }
         }
     }
