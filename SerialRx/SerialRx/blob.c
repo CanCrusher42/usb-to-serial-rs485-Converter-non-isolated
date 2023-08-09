@@ -20,7 +20,7 @@ extern rplidar_response_measurement_node_t finalLineData[1 * 180];
 
 blobStruct_t blobList[BLOBS_IN_LIST];
 
-void ClearBlobNumber(uint16_t i)
+void ClearBlobNumber(uint8_t i)
 {
 	memset(&blobList[i], 0, sizeof(blobStruct_t));
 }
@@ -49,8 +49,8 @@ void PrintBlobList()
 
 uint16_t GetBlobCount()
 {
-	uint16_t count = 0;
-	for (int i = 0; i < BLOBS_IN_LIST; i++)
+	uint8_t count = 0;
+	for (uint8_t i = 0; i < BLOBS_IN_LIST; i++)
 	{
 		if (blobList[i].numSamples > 0)
 			count++;
@@ -58,7 +58,7 @@ uint16_t GetBlobCount()
 	return count;
 }
 
-bool IsPointInBlob(uint16_t blobNumber, int16_t x, int16_t y)
+bool IsPointInBlob(uint8_t blobNumber, int8_t x, int8_t y)
 {
 	if ((x >= (blobList[blobNumber].xLeft - 1)) && (x <= (blobList[blobNumber].xRight + 1)) &&
 		(y >= (blobList[blobNumber].yLower - 1)) && (y <= (blobList[blobNumber].yUpper + 1)))
@@ -66,11 +66,11 @@ bool IsPointInBlob(uint16_t blobNumber, int16_t x, int16_t y)
 	return false;
 
 }
-int16_t addPointToBlobList(int16_t x, int16_t y)
+int8_t addPointToBlobList(int8_t x, int8_t y)
 {
 	bool found = false;
-	uint16_t firstBlob = 99;
-	for (int i = 0; i < BLOBS_IN_LIST; i++)
+	uint8_t firstBlob = 99;
+	for (uint8_t i = 0; i < BLOBS_IN_LIST; i++)
 	{
 		if (blobList[i].numSamples > 0)
 		{
@@ -105,7 +105,7 @@ int16_t addPointToBlobList(int16_t x, int16_t y)
 
 	if (found == false)
 	{
-		for (int i = 0; i < BLOBS_IN_LIST; i++)
+		for (uint8_t i = 0; i < BLOBS_IN_LIST; i++)
 		{
 			if (blobList[i].numSamples == 0)
 			{
@@ -122,7 +122,7 @@ int16_t addPointToBlobList(int16_t x, int16_t y)
 }
 
 // The new blob will combine the two 
-void MergeSecondBlobIntoFirst(uint16_t firstBlob, uint16_t secondBlob)
+void MergeSecondBlobIntoFirst(uint8_t firstBlob, uint8_t secondBlob)
 {
 	blobList[firstBlob].xLeft  = min(blobList[firstBlob].xLeft, blobList[secondBlob].xLeft);
 	blobList[firstBlob].xRight = max(blobList[firstBlob].xRight, blobList[secondBlob].xRight);
