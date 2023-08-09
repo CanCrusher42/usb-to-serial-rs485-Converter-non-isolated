@@ -5,16 +5,23 @@
 #define BLOBS_DEFINE_H
 
 
-#define BLOBS_IN_LIST 5
+#define BLOBS_IN_LIST 10
 
 typedef struct blob_struct {
-	uint16_t xStart;
-	uint16_t xEnd;
-	uint16_t yStart;
-	uint16_t yEnd;
+	int16_t xLeft;
+	int16_t xRight;
+	int16_t yUpper;
+	int16_t yLower;
 	uint16_t numSamples;
-
 } blobStruct_t;
+
+
+void ClearBlobs();
+void ClearBlobNumber(uint16_t i);
+void ClearFinalLineData();
+int16_t addPointToBlobList(int16_t x, int16_t y);
+void MergeSecondBlobIntoFirst(uint16_t firstBlob, uint16_t secondBlob);
+uint16_t GetBlobCount();
 
 //} __attribute__((packed)) blobStruct_t;
 
