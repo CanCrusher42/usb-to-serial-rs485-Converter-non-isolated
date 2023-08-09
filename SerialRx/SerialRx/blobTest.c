@@ -198,6 +198,54 @@ bool testTriangle2()
 }
 
 
+// X_X 
+// ___
+// X_X
+// THen add the one in the middle
+bool testTriangle3()
+{
+	SetupTestAreas();
+	if (GetBlobCount() != 0)
+	{
+		printf("ERROR = Blobcount != 0\n");
+		return false;
+	}
+	int location = addPointToBlobList(-1, 2);
+	if (location < 0) { printf("Error %s Failed to add new point at location 0.  %i\n", __FUNCTION__, location); return false; }
+	if (GetBlobCount() != 1)
+		printf("ERROR: %s Blob Count should equal 1, not %d\n", __FUNCTION__, GetBlobCount());
+
+	location = addPointToBlobList(+1, 2);
+	if (location < 0) { printf("Error %s Failed to add new point at location 1.  %i\n", __FUNCTION__, location); return false; }
+	if (GetBlobCount() != 2)
+		printf("ERROR: %s Blob Count should equal 2, not %d\n", __FUNCTION__, GetBlobCount());
+
+	location = addPointToBlobList(1, 4);
+	if (location < 0) { printf("Error %s Failed to add new point at location 2.  %i\n", __FUNCTION__, location); return false; }
+	if (GetBlobCount() != 3)
+		printf("ERROR: %s Blob Count should equal 3 after combine, not %d\n", __FUNCTION__, GetBlobCount());
+
+	location = addPointToBlobList(-1, 4);
+	if (location < 0) { printf("Error %s Failed to add new point at location 4.  %i\n", __FUNCTION__, location); return false; }
+	if (GetBlobCount() != 4)
+		printf("ERROR: %s Blob Count should equal 4 after combine, not %d\n", __FUNCTION__, GetBlobCount());
+
+
+
+	location = addPointToBlobList(0, 3);
+	if (location < 0) { printf("Error %s Failed to add new point at location 5  %i\n", __FUNCTION__, location); return false; }
+	if (GetBlobCount() != 1)
+		printf("ERROR: %s Blob Count should equal 1 again after combine, not %d\n", __FUNCTION__, GetBlobCount());
+
+	location = addPointToBlobList(7, 4);
+	if (location < 0) { printf("Error %s Failed to add new point at location 4  %i\n", __FUNCTION__, location); return false; }
+	if (GetBlobCount() != 2)
+		printf("ERROR: %s Blob Count should equal 2 again random add, not %d\n", __FUNCTION__, GetBlobCount());
+
+	return true;
+}
+
+
 int RunBlobTests()
 {
 	bool result = true;
@@ -206,4 +254,5 @@ int RunBlobTests()
 	result &= testCornerBasic1();
 	result &= testTriangle1();
 	result &= testTriangle2();
+	result &= testTriangle3();
 }
