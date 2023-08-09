@@ -128,6 +128,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="blob.c" />
+    <ClCompile Include="blobTest.c" />
     <ClCompile Include="rplidar_c_driver.c" />
     <ClCompile Include="SerialRx.c" />
     <ClCompile Include="ExpressSample.c" />
@@ -136,6 +138,7 @@
     <ClCompile Include="scan_display.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="blob.h" />
     <ClInclude Include="lp_defines.h" />
     <ClInclude Include="inc\rplidar_cmd.h" />
     <ClInclude Include="inc\rplidar_protocol.h" />
