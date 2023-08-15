@@ -23,6 +23,10 @@ int8_t addPointToBlobList(int8_t x, int8_t y);
 void MergeSecondBlobIntoFirst(uint8_t firstBlob, uint8_t secondBlob);
 uint16_t GetBlobCount();
 
+
+float GetAngleToBlob(int8_t blob);
+void GetBlobCenter(uint8_t blob, int16_t* x, int16_t* y);
+
 //} __attribute__((packed)) blobStruct_t;
 
 

@@ -12,6 +12,8 @@
 #include <stdbool.h>
 #include <math.h>
 
+#include "serial.h"
+
 #if defined(_WIN32)
 HANDLE hComm;
 #else

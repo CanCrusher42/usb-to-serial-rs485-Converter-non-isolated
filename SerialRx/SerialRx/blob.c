@@ -130,3 +130,35 @@ void MergeSecondBlobIntoFirst(uint8_t firstBlob, uint8_t secondBlob)
 	blobList[firstBlob].yLower = min(blobList[firstBlob].yLower, blobList[secondBlob].yLower);
 	ClearBlobNumber(secondBlob);
 }
+
+
+ void GetBlobCenter(uint8_t blob, int16_t* x, int16_t* y)
+{
+	if (blobList[blob].numSamples > 0)
+	{
+		*x = (blobList[blob].xLeft + blobList[blob].xRight) / 2;
+		*y = (blobList[blob].yUpper + blobList[blob].yLower) / 2;
+	}
+
+}
+
+
+
+ // get angle to blob in radians
+float GetAngleToBlob(int8_t blob)
+{ 
+	int16_t centerX, centerY;
+
+	// Compute Center of Blob
+	GetBlobCenter(blob, &centerX, &centerY);
+	float a = (float)centerY / (float)centerX;
+	a = atan(a);
+	return a;
+
+
+}
+
+int GetCmToBlobCenter()
+{
+
+}

@@ -144,6 +144,7 @@
     <ClInclude Include="inc\rplidar_protocol.h" />
     <ClInclude Include="inc\rptypes.h" />
     <ClInclude Include="rplidar_driver_impl.h" />
+    <ClInclude Include="serial.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

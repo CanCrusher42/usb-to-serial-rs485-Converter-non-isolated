@@ -246,6 +246,46 @@ bool testTriangle3()
 }
 
 
+bool testAngle45()
+{
+	ClearBlobs();
+	int location = addPointToBlobList(-10, 10);
+	int16_t x=0, y=0, angleResult;
+	bool result = false;
+	uint8_t blob = 0;
+	GetBlobCenter(blob, &x, &y);
+	if ((x != -10) || (y != 10))
+	{
+		printf("ERROR: %s Blob center should be -10, 10, not %d  %d \n", __FUNCTION__, x,y);
+		return false;
+	}
+
+	float angle = GetAngleToBlob(blob);
+	if ((angle < -0.786) || (angle > -0.785))
+	{
+		printf("ERROR: %s Angle to blob sbould be -0.785, not %2.5f  \n", __FUNCTION__, angle);
+		return false;
+	}
+	printf("Angle = %2.2f\n", angle);
+
+	location = addPointToBlobList(-11, 10);
+	location = addPointToBlobList(-12, 10);
+	GetBlobCenter(blob, &x, &y);
+	if ((x != -11) || (y != 10))
+	{
+		printf("ERROR: %s Blob center should be -11, 10, not %d  %d \n", __FUNCTION__, x, y);
+		return false;
+	}
+
+	angle = GetAngleToBlob(blob);
+	if ((angle < -0.738) || (angle > -0.736))
+	{
+		printf("ERROR: %s Angle to blob sbould be -0.737, not %2.5f  \n", __FUNCTION__, angle);
+		return false;
+	}
+
+}
+
 int RunBlobTests()
 {
 	bool result = true;
@@ -255,4 +295,11 @@ int RunBlobTests()
 	result &= testTriangle1();
 	result &= testTriangle2();
 	result &= testTriangle3();
+	result &= testAngle45();
+
+	if (result != true)
+	{
+		printf("\n\n\n---------------FAIL FAIL FAIL ------------------------\n");
+	}
+
 }
