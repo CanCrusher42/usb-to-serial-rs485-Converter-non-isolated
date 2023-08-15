@@ -4,12 +4,15 @@
 #include "rplidar_driver_impl.h"
 
 #include <stdbool.h>
+#include <string.h>
 #include <stdio.h>
+#include "serial.h"
+
 int GetTickCount();
 int millis() { return (20); }
 bool OpenLpLidar();
 extern rplidar_response_measurement_node_t finalLineData[1 * 180];
-
+void DisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t minQuality, uint16_t maxHeight);
 void DisplayLineDistance(uint16_t startAngle, uint16_t endAngle, uint8_t minQuality, uint16_t maxHeight);
 
 bool testBasicCommandHealth()

@@ -57,7 +57,9 @@ bool testAddPointToBlankList()
 		return false;
 	}
 
+	return true;
 }
+
 bool testHorzVertBasic1()
 {
 	SetupTest1();
@@ -284,6 +286,7 @@ bool testAngle45()
 		return false;
 	}
 
+	return true;
 }
 
 
@@ -312,7 +315,7 @@ bool testGetLargestBlob()
 
 	}
 
-
+	return true;
 }
 
 
@@ -331,5 +334,5 @@ int RunBlobTests()
 	{
 		printf("\n\n\n---------------FAIL FAIL FAIL ------------------------\n");
 	}
-
+	return result;
 }

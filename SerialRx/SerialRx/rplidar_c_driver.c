@@ -10,6 +10,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+
+uint32_t GetTickCount();;
 int millis();
 bool OpenLpLidar();
 int lidarClear_serial();

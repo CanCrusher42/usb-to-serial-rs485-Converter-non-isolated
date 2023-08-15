@@ -152,7 +152,7 @@ float GetAngleToBlob(int8_t blob)
 	// Compute Center of Blob
 	GetBlobCenter(blob, &centerX, &centerY);
 	float a = (float)centerY / (float)centerX;
-	a = atan(a);
+	a = (float)atan(a);
 	return a;
 
 

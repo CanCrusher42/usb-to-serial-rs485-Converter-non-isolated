@@ -34,6 +34,7 @@
 
 #pragma once
 
+
 //#include "Arduino.h"
 #include "inc/rptypes.h"
 #include "inc/rplidar_cmd.h"
@@ -77,21 +78,9 @@ struct RplidarScanMode {
     u_result getHealth(rplidar_response_device_health_t* health, _u32 Timeout);
     u_result getDeviceInfo(rplidar_response_device_info_t* info, _u32 Timeout);
 
-#if 0 // Not implemented
-    u_result getLidarConf(_u32 type, std::vector<_u8> &outputBuf, const std::vector<_u8> &reserve = std::vector<_u8>(), _u32 timeout = DEFAULT_TIMEOUT);
-    u_result getScanModeCount(_u16& modeCount, _u32 timeoutInMs = DEFAULT_TIMEOUT);
-    u_result getLidarSampleDuration(float& sampleDurationRes, _u16 scanModeID, _u32 timeoutInMs = DEFAULT_TIMEOUT);
-    u_result getMaxDistance(float &maxDistance, _u16 scanModeID, _u32 timeoutInMs = DEFAULT_TIMEOUT);
-    u_result getScanModeAnsType(_u8 &ansType, _u16 scanModeID, _u32 timeoutInMs = DEFAULT_TIMEOUT);
-    u_result getScanModeName(char* modeName, _u16 scanModeID, _u32 timeoutInMs = DEFAULT_TIMEOUT);
-#endif
 
 
-//    u_result startScan(bool force, bool useTypicalScan, _u32 options = 0, RplidarScanMode* outUsedScanMode = NULL);
       u_result startScanExpress(bool force, _u16 scanMode, _u32 options, struct RplidarScanMode* outUsedScanMode , _u32 timeout );
-//    u_result getHealth(rplidar_response_device_health_t* health, _u32 timeout );
-//    u_result getDeviceInfo(rplidar_response_device_info_t* info, _u32 timeout );
-
 
 
 
@@ -103,19 +92,13 @@ struct RplidarScanMode {
 
     u_result loopScanData();
     u_result loopScanExpressData();
-
+    u_result loopScanExpressData6();
 //protected:
 
 
     u_result _sendCommand(_u8 cmd, void * payload , size_t payloadsize );
 
     void     _disableDataGrabbing();
-#if 0
-    
-
-    u_result _waitResponseHeader(rplidar_ans_header_t * header, _u32 timeout = DEFAULT_TIMEOUT);
-    u_result _cacheScanData();
-#endif
     u_result _waitScanData(rplidar_response_measurement_node_t * nodebuffer, size_t * count, _u32 timeout);
     u_result _waitNode(rplidar_response_measurement_node_t * node, _u32 timeout );
     u_result  _cacheCapsuledScanData();
@@ -124,30 +107,5 @@ struct RplidarScanMode {
     void     _capsuleToNormal(rplidar_response_capsule_measurement_nodes_t * capsule, rplidar_response_measurement_node_hq_t *nodebuffer, size_t *nodeCount);
     void     _capsuleToNormal16(rplidar_response_capsule_measurement_nodes_t* capsule, rplidar_response_measurement_node_t* nodebuffer, size_t* nodeCount);
     void     _dense_capsuleToNormal(const rplidar_response_capsule_measurement_nodes_t * capsule, rplidar_response_measurement_node_hq_t *nodebuffer, size_t *nodeCount);
-#if 0    
-    u_result _waitHqNode(rplidar_response_hq_capsule_measurement_nodes_t & node, _u32 timeout = DEFAULT_TIMEOUT);
-    void     _HqToNormal(const rplidar_response_hq_capsule_measurement_nodes_t & node_hq, rplidar_response_measurement_node_hq_t *nodebuffer, size_t &nodeCount);
 
-    bool     _isConnected; 
-    bool     _isSupportingMotorCtrl;
-    bool     _isScanning;
-    bool     _isTofLidar;
-
-    rplidar_response_measurement_node_hq_t   _cached_scan_node_hq_buf[2048];
-    size_t                                   _cached_scan_node_hq_count;
-
-    _u16                    _cached_sampleduration_std;
-    _u16                    _cached_sampleduration_express;
-    _u8                     _cached_express_flag;
-    float                   _cached_current_us_per_sample;
-
-    rplidar_response_capsule_measurement_nodes_t _cached_previous_capsuledata;
-    rplidar_response_dense_capsule_measurement_nodes_t _cached_previous_dense_capsuledata;
-    rplidar_response_ultra_capsule_measurement_nodes_t _cached_previous_ultracapsuledata;
-    rplidar_response_hq_capsule_measurement_nodes_t _cached_previous_Hqdata;
-    bool                                         _is_previous_capsuledataRdy;
-    bool                                         _is_previous_HqdataRdy;
-    bool                                         _syncBit_is_finded;
-#endif
-//};
 
