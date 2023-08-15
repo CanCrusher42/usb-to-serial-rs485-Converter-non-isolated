@@ -250,7 +250,7 @@ bool testAngle45()
 {
 	ClearBlobs();
 	int location = addPointToBlobList(-10, 10);
-	int16_t x=0, y=0, angleResult;
+	int16_t x=0, y=0;
 	bool result = false;
 	uint8_t blob = 0;
 	GetBlobCenter(blob, &x, &y);
@@ -286,6 +286,36 @@ bool testAngle45()
 
 }
 
+
+
+bool testGetLargestBlob()
+{
+	ClearBlobs();
+	int location = addPointToBlobList(-10, 10);
+	
+	location = addPointToBlobList(-1, 10);
+	location = addPointToBlobList(-2, 10);
+
+	location = addPointToBlobList(2, 10);
+	location = addPointToBlobList(3, 9);
+
+	if (GetBlobCount() != 3)
+	{
+		printf("ERROR: %s Number of blobs should be 3 and not %d  \n", __FUNCTION__, GetBlobCount());
+		return false;
+	}
+
+	if (GetLargestBlob() != 2)
+	{
+		printf("ERROR: %s GetLargetBlob should be 2 and not %d  \n", __FUNCTION__, GetLargestBlob());
+		return false;
+
+	}
+
+
+}
+
+
 int RunBlobTests()
 {
 	bool result = true;
@@ -296,7 +326,7 @@ int RunBlobTests()
 	result &= testTriangle2();
 	result &= testTriangle3();
 	result &= testAngle45();
-
+	result &= testGetLargestBlob();
 	if (result != true)
 	{
 		printf("\n\n\n---------------FAIL FAIL FAIL ------------------------\n");

@@ -26,7 +26,7 @@ uint16_t GetBlobCount();
 
 float GetAngleToBlob(int8_t blob);
 void GetBlobCenter(uint8_t blob, int16_t* x, int16_t* y);
-
+uint8_t GetLargestBlob();
 //} __attribute__((packed)) blobStruct_t;
 
 

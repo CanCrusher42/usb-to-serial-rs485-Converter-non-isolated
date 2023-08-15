@@ -158,7 +158,28 @@ float GetAngleToBlob(int8_t blob)
 
 }
 
+uint8_t GetLargestBlob()
+{
+	uint32_t largestSize=0;
+	
+	uint8_t largestIndex=0xFF;
+	for (uint8_t i = 0; i < BLOBS_IN_LIST; i++)
+	{
+		if (blobList[i].numSamples > 0)
+		{
+			uint32_t tempSize = (blobList[i].xRight - blobList[i].xLeft) + 1;
+			tempSize *= (blobList[i].yUpper- blobList[i].yLower +1 );
+			if (tempSize > largestSize)
+			{
+				largestSize = tempSize;
+				largestIndex = i;
+			}
+		}
+	}
+	return largestIndex;
+}
+
 int GetCmToBlobCenter()
 {
-
+	return 0;
 }
