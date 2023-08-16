@@ -53,6 +53,9 @@ void PrintBlobList()
 			printf("%d - %3d , %3d    %3d , %3d  %4d \n", i, blobList[i].xLeft, blobList[i].yUpper, blobList[i].xRight, blobList[i].yLower, GetBlobSize(i));
 		}
 	}
+	uint8_t largestBlob = GetLargestBlob();
+	printf("Angle to largest Blob = %3f  Distance = %d\n", GetAngleToBlob(largestBlob)* 57.2958, GetDistanceToBlobCenter(largestBlob));
+
 
 
 }

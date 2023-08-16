@@ -85,6 +85,7 @@ bool testExpressScanMode()
 		//DisplayLineAngle(0, 180, 20, 50);
 		ConvertDisplayLineToRoom(0, 180, 20, 50);
 		
+
 		lidarClear_serial();
 		screens++;
 		loopCount = 0;

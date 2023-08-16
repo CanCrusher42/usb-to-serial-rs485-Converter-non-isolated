@@ -347,6 +347,7 @@ void ConvertDisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t mi
 		displayLine[180] = 0;
 		printf("%3d %05d|", row, row * yPerRow);
 		printf("        %s\n", displayLine);
+		PrintBlobList();
 
 
 	}
