@@ -12,7 +12,7 @@ int GetTickCount();
 int millis() { return (20); }
 bool OpenLpLidar();
 extern rplidar_response_measurement_node_t finalLineData[1 * 180];
-void DisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t minQuality, uint16_t maxHeight);
+void ConvertDisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t minQuality, uint16_t maxHeight);
 void DisplayLineDistance(uint16_t startAngle, uint16_t endAngle, uint8_t minQuality, uint16_t maxHeight);
 
 bool testBasicCommandHealth()
@@ -83,7 +83,7 @@ bool testExpressScanMode()
 		system("cls");
 		//DisplayLineDistance(0, 180, 20, 50);
 		//DisplayLineAngle(0, 180, 20, 50);
-		DisplayLineToRoom(0, 180, 20, 50);
+		ConvertDisplayLineToRoom(0, 180, 20, 50);
 		
 		lidarClear_serial();
 		screens++;

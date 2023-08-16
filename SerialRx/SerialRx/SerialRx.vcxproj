@@ -139,11 +139,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="blob.h" />
-    <ClInclude Include="lp_defines.h" />
+    <ClInclude Include="inc\lp_defines.h" />
+    <ClInclude Include="inc\rplidar_driver_impl.h" />
     <ClInclude Include="inc\rplidar_cmd.h" />
     <ClInclude Include="inc\rplidar_protocol.h" />
     <ClInclude Include="inc\rptypes.h" />
-    <ClInclude Include="rplidar_driver_impl.h" />
     <ClInclude Include="serial.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

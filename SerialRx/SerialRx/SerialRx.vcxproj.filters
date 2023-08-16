@@ -50,16 +50,16 @@
     <ClInclude Include="inc\rptypes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="rplidar_driver_impl.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="lp_defines.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="blob.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="serial.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\rplidar_driver_impl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\lp_defines.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

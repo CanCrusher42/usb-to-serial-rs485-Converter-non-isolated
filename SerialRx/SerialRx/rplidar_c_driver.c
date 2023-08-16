@@ -1,8 +1,8 @@
 #include "inc/rptypes.h"
 #include "inc/rplidar_protocol.h"
 #include "inc/rplidar_cmd.h"
-#include "rplidar_driver_impl.h"
-#include "lp_defines.h"
+#include "inc/rplidar_driver_impl.h"
+#include "inc/lp_defines.h"
 
 #include <math.h>
 #include <stdbool.h>

@@ -3,10 +3,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include "lp_defines.h"
+#include "inc/lp_defines.h"
 #include "inc/rplidar_cmd.h"
 #include "string.h"
-
+#include "blob.h"
 
 extern int maxValue ;
 extern rplidar_response_measurement_node_t finalLineData[SAMPLES_PER_DEGREE * 180];
@@ -251,7 +251,7 @@ void DisplayLineAngle(uint16_t startAngle, uint16_t endAngle, uint8_t minQuality
 }
 
 
-void DisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t minQuality, uint16_t maxHeight)
+void ConvertDisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t minQuality, uint16_t maxHeight)
 {
 	// Middle Angle = startAngle+90;
 	// Get Max Neg and Pos X
@@ -312,11 +312,9 @@ void DisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t minQualit
 	}
 
 	// Now paint from the top row (Farthest away from the sensor first)
-
+	ClearBlobs();
 	for (int row = maxHeight; row > 0; row--)
 	{
-//		rowUpper = row * yPerRow;
-//		rowLower = (row - 1) * yPerRow;
 		memset(displayLine, ' ', 195);
 		for (uint16_t col = 0; col < 180; col++)
 		{
@@ -329,7 +327,12 @@ void DisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t minQualit
 				else
 				{
 					if (finalLineData[col].sync_quality != 0)
+					{
 						displayLine[divX] = '@';
+						addPointToBlobList(divX, divY);
+
+
+					}
 					else
 						displayLine[divX] = '.';
 				}
