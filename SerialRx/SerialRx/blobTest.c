@@ -268,7 +268,7 @@ bool testAngle45()
 		printf("ERROR: %s Angle to blob sbould be -0.785, not %2.5f  \n", __FUNCTION__, angle);
 		return false;
 	}
-	printf("Angle = %2.2f\n", angle);
+//	printf("Angle = %2.2f\n", angle);
 
 	location = addPointToBlobList(-11, 10);
 	location = addPointToBlobList(-12, 10);
@@ -318,6 +318,34 @@ bool testGetLargestBlob()
 	return true;
 }
 
+bool testGetDistanceToBlobCenter()
+{
+	ClearBlobs();
+	int location = addPointToBlobList(-10, 10);
+
+	uint16_t distance = GetDistanceToBlobCenter(0);
+	if (distance != 14)
+	{
+		printf("ERROR: %s GetDistanceToBlobCenter() should be 14 and not %d  \n", __FUNCTION__, distance);
+		return false;
+
+	}
+	return true;
+}
+
+bool testPrintBlobs()
+{
+	ClearBlobs();
+	int location = addPointToBlobList(-10, 10);
+
+	location = addPointToBlobList(-1, 10);
+	location = addPointToBlobList(-2, 10);
+
+	location = addPointToBlobList(2, 10);
+	location = addPointToBlobList(3, 9);
+	PrintBlobList();
+	return true;
+}
 
 int RunBlobTests()
 {
@@ -330,6 +358,11 @@ int RunBlobTests()
 	result &= testTriangle3();
 	result &= testAngle45();
 	result &= testGetLargestBlob();
+	result &= testGetDistanceToBlobCenter();
+	result &= testPrintBlobs();
+
+
+
 	if (result != true)
 	{
 		printf("\n\n\n---------------FAIL FAIL FAIL ------------------------\n");

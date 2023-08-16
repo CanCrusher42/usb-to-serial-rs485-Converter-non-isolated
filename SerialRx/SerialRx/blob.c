@@ -44,6 +44,16 @@ void ClearFinalLineData()
 
 void PrintBlobList()
 {
+	printf("B - ULx , ULy    LRx , LRy  Size\n");
+	for (uint8_t i = 0; i < BLOBS_IN_LIST; i++)
+	{
+
+		if (blobList[i].numSamples > 0)
+		{
+			printf("%d - %3d , %3d    %3d , %3d  %4d \n", i, blobList[i].xLeft, blobList[i].yUpper, blobList[i].xRight, blobList[i].yLower, GetBlobSize(i));
+		}
+	}
+
 
 }
 
@@ -136,13 +146,20 @@ void MergeSecondBlobIntoFirst(uint8_t firstBlob, uint8_t secondBlob)
 {
 	if (blobList[blob].numSamples > 0)
 	{
-		*x = (blobList[blob].xLeft + blobList[blob].xRight) / 2;
+		*x = (blobList[blob].xLeft  + blobList[blob].xRight) / 2;
 		*y = (blobList[blob].yUpper + blobList[blob].yLower) / 2;
 	}
 
 }
 
-
+ 
+ uint16_t GetDistanceToBlobCenter(uint8_t blob)
+ {
+	 int16_t x = 0, y = 0;
+	 GetBlobCenter(blob, &x, &y);
+	 int16_t distance = (int16_t)round(sqrt(x * x + y * y));
+	 return distance;
+ }
 
  // get angle to blob in radians
 float GetAngleToBlob(int8_t blob)
@@ -158,6 +175,14 @@ float GetAngleToBlob(int8_t blob)
 
 }
 
+uint32_t GetBlobSize(uint8_t blob)
+{
+	uint32_t tempSize = (blobList[blob].xRight - blobList[blob].xLeft) + 1;
+	tempSize *= (blobList[blob].yUpper - blobList[blob].yLower + 1);
+	return tempSize;
+}
+
+
 uint8_t GetLargestBlob()
 {
 	uint32_t largestSize=0;
@@ -167,8 +192,11 @@ uint8_t GetLargestBlob()
 	{
 		if (blobList[i].numSamples > 0)
 		{
-			uint32_t tempSize = (blobList[i].xRight - blobList[i].xLeft) + 1;
-			tempSize *= (blobList[i].yUpper- blobList[i].yLower +1 );
+			
+			uint32_t tempSize = GetBlobSize(i);
+				
+//				(blobList[i].xRight - blobList[i].xLeft) + 1;
+//			tempSize *= (blobList[i].yUpper- blobList[i].yLower +1 );
 			if (tempSize > largestSize)
 			{
 				largestSize = tempSize;
@@ -179,7 +207,3 @@ uint8_t GetLargestBlob()
 	return largestIndex;
 }
 
-int GetCmToBlobCenter()
-{
-	return 0;
-}
