@@ -14,10 +14,53 @@
 
 #include "serial.h"
 
+#define TEST_SERIAL
+
+bool serialTestMode = false;
+#ifdef TEST_SERIAL
+int testBuffer[128];
+int16_t testBufferIndex = 0;
+#endif
+
 #if defined(_WIN32)
 HANDLE hComm;
 #else
+#include "../mcc_generated_files/uart/uart2.h"
 
+
+
+bool OpenLpLidar()
+{
+    return 1;
+}
+
+void lidarSerial_write(uint8_t* header, uint16_t length)
+{
+	for (int i = 0; i < length; i++)
+	{
+        UART2_Write(header[i]);
+	}
+}
+
+int16_t lidarSerial_read()
+{
+
+    if (UART2_IsRxReady()== false)
+	{
+	  	return -1;
+	}
+	else
+	{
+        return UART2_Read();
+	}
+}
+
+int lidarClear_serial()
+{
+	UART2_Purge();
+    
+	return true;
+}
 #endif
 
 
@@ -27,9 +70,14 @@ bool OpenLpLidar(/*HANDLE hComm*/)
 {
 	//	HANDLE hComm;                          // Handle to the Serial port
 	TCHAR* pcCommPort = TEXT("COM9");
+	TCHAR* pcCommPort5 = TEXT("COM5");
 	BOOL  Status;                          // Status of the various operations 
 	DWORD  dNoOfBytesWritten = 0;          // No of bytes written to the port
 	BOOL match = false;
+
+	#ifdef TEST_SERIAL
+	return true;
+	#endif
 
 	int i = 0;
 
@@ -48,8 +96,25 @@ bool OpenLpLidar(/*HANDLE hComm*/)
 
 	if (hComm == INVALID_HANDLE_VALUE)
 	{
-		printf("\n    Error! - Port %S can't be opened\n", pcCommPort);
-		return false;
+		printf("\n    Error! - Port %S can't be opened Trying COM5\n", pcCommPort);
+
+		hComm = CreateFile(pcCommPort5 /* ComPortName*/,                  // Name of the Port to be Opened
+			GENERIC_READ | GENERIC_WRITE, // Read/Write Access
+			0,                            // No Sharing, ports cant be shared
+			NULL,                         // No Security
+			OPEN_EXISTING,                // Open existing port only
+			0,                            // Non Overlapped I/O
+			NULL);                        // Null for Comm Devices
+		
+		if (hComm == INVALID_HANDLE_VALUE)
+		{
+			printf("\n    Error! - Port %S can't be opened Either \n", pcCommPort5);
+			return false;
+		}
+		else
+		{
+			printf("\n    Port %S Opened\n ", pcCommPort5);
+		}
 	}
 	else
 		printf("\n    Port %S Opened\n ", pcCommPort);
@@ -161,6 +226,14 @@ void lidarSerial_write(uint8_t* header, uint16_t length)
 
 int lidarSerial_read()
 {
+#ifdef TEST_SERIAL
+	if (testBufferIndex < 90)
+	{
+		return testBuffer[testBufferIndex++];
+	}
+	else
+		return -1;
+#endif
 	DWORD NoBytesExpected = 1;
 	DWORD NoBytesRecieved = 0;
 	bool Status;

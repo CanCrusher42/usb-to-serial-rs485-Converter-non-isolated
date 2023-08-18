@@ -1235,9 +1235,12 @@ int getRawExpressScanLineOfData(HANDLE hComm, int numChars)
 
 void main()
 {
+	
 	bool runAllTests();
 	int RunBlobTests();
-	RunBlobTests();
+	bool runAllRtosTests();
+	runAllRtosTests();
+	//RunBlobTests();
 	//runAllTests();
 
 

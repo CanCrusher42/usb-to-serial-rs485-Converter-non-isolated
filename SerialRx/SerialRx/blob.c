@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include "lp_defines.h"
+#include "inc/lp_defines.h"
 #include "inc/rplidar_cmd.h"
 #include "string.h"
 

@@ -33,14 +33,11 @@
  */
 
 #pragma once
-
-
-//#include "Arduino.h"
-#include "inc/rptypes.h"
-#include "inc/rplidar_cmd.h"
+#ifndef RPLIDAR_DRIVER_H
+#define RPLIDAR_DRIVER_H
 #include <stdbool.h>
-//#include <SoftwareSerial.h>
-//#include <vector>
+#include "rptypes.h"
+#include "rplidar_cmd.h"
 
 #define NULL (void*)0
 
@@ -54,11 +51,6 @@ struct RplidarScanMode {
 
 
 
-
-
-//class RPLidar
-//{
-//public:
     enum {
         RPLIDAR_TOF_MINUM_MAJOR_ID = 5,
     };
@@ -78,34 +70,17 @@ struct RplidarScanMode {
     u_result getHealth(rplidar_response_device_health_t* health, _u32 Timeout);
     u_result getDeviceInfo(rplidar_response_device_info_t* info, _u32 Timeout);
 
-
-
-      u_result startScanExpress(bool force, _u16 scanMode, _u32 options, struct RplidarScanMode* outUsedScanMode , _u32 timeout );
-
-
-
-    u_result getSampleDuration_uS(rplidar_response_sample_rate_t * rateInfo, _u32 timeout);
+    u_result startScanExpress(bool force, _u16 scanMode, _u32 options, struct RplidarScanMode* outUsedScanMode , _u32 timeout );
     u_result startScanNormal(bool force, _u32 timeout );
     u_result stop(_u32 timeout);
-    u_result grabScanData(rplidar_response_measurement_node_hq_t * nodebuffer, size_t * count, _u32 timeout );
-    u_result grabScanExpressData(rplidar_response_measurement_node_hq_t * nodebuffer, size_t * count, _u32 timeout );
-
-    u_result loopScanData();
-    u_result loopScanExpressData();
     u_result loopScanExpressData6();
-//protected:
 
 
     u_result _sendCommand(_u8 cmd, void * payload , size_t payloadsize );
 
     void     _disableDataGrabbing();
-    u_result _waitScanData(rplidar_response_measurement_node_t * nodebuffer, size_t * count, _u32 timeout);
-    u_result _waitNode(rplidar_response_measurement_node_t * node, _u32 timeout );
-    u_result  _cacheCapsuledScanData();
     u_result _waitCapsuledNode(rplidar_response_capsule_measurement_nodes_t * node, _u32 timeout);
-    int       _getSyncBitByAngle(int current_angle_q16, int angleInc_q16);
-    void     _capsuleToNormal(rplidar_response_capsule_measurement_nodes_t * capsule, rplidar_response_measurement_node_hq_t *nodebuffer, size_t *nodeCount);
     void     _capsuleToNormal16(rplidar_response_capsule_measurement_nodes_t* capsule, rplidar_response_measurement_node_t* nodebuffer, size_t* nodeCount);
-    void     _dense_capsuleToNormal(const rplidar_response_capsule_measurement_nodes_t * capsule, rplidar_response_measurement_node_hq_t *nodebuffer, size_t *nodeCount);
 
 
+#endif
