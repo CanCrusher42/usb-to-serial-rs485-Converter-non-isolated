@@ -20,6 +20,7 @@ bool serialTestMode = false;
 #ifdef TEST_SERIAL
 int testBuffer[128];
 int16_t testBufferIndex = 0;
+int16_t maxTextBufferIndex = 0;
 #endif
 
 #if defined(_WIN32)
@@ -227,7 +228,7 @@ void lidarSerial_write(uint8_t* header, uint16_t length)
 int lidarSerial_read()
 {
 #ifdef TEST_SERIAL
-	if (testBufferIndex < 90)
+	if (testBufferIndex < maxTextBufferIndex)
 	{
 		return testBuffer[testBufferIndex++];
 	}

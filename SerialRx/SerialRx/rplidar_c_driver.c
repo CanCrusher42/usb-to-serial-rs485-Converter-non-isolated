@@ -9,6 +9,7 @@
 #include "inc/rplidar_cmd.h"
 #include "inc/rplidar_driver_impl.h"
 #include "inc/lp_defines.h"
+#include "serial.h"
 
 #include <math.h>
 
@@ -226,68 +227,75 @@ u_result getDeviceInfo(rplidar_response_device_info_t* info, _u32 timeout)
 
 u_result _waitCapsuledNodeRTOS(rplidar_response_capsule_measurement_nodes_t* node, bool  new)
 {
-    static _u8  recvPos = 0;
-    static _u8  recvBuffer[8];
+	static _u8  recvPos = 0;
+	//static _u8  recvBuffer[8];
+    static _u8 pos = 0;
+
+
     _u8* nodeBuffer = (_u8*)node;
-    int16_t currentbyte;
-    _u8 currentByte;
-    static _u8 pos;
-    
-    if (new)
-    {
-        recvPos = 0;
-        pos = 0;
-    }
-    
-    size_t remainSize = sizeof(rplidar_response_capsule_measurement_nodes_t) - recvPos;
-    // need loop until
-    currentbyte = lidarSerial_read();
-    if (currentbyte < 0) 
-        return RESULT_WAITING;
+	int16_t currentbyte;
+	_u8 currentByte;
+      
+    u_result result = RESULT_WAITING;
+
+	if (new)
+	{
+		recvPos = 0;
+		pos = 0;
+	}
 
 
-    currentByte = currentbyte;
+	while (1)
+	{
+		size_t remainSize = sizeof(rplidar_response_capsule_measurement_nodes_t) - recvPos;
+		// need loop until
+		currentbyte = lidarSerial_read();
+		if (currentbyte < 0)
+			return RESULT_WAITING;
 
 
-        switch (recvPos) {
-        case 0: // expect the sync bit 1
-        {
-            _u8 tmp = (currentByte >> 4);
-            if (tmp == RPLIDAR_RESP_MEASUREMENT_EXP_SYNC_1) {
-                // pass
-            }
-            else {
-                _is_previous_capsuledataRdy = false;
-                return RESULT_WAITING;
-            }
+		currentByte = currentbyte & 0xFF;
 
-        }
-        break;
-        case 1: // expect the sync bit 2
-        {
-            _u8 tmp = (currentByte >> 4);
-            if (tmp == RPLIDAR_RESP_MEASUREMENT_EXP_SYNC_2) {
-                // pass
-            }
-            else {
-                recvPos = 0;
-                _is_previous_capsuledataRdy = false;
-                return RESULT_WAITING;
-            }
-        }
-        break;
-        }
 
-        nodeBuffer[recvPos++] = currentByte;
-        if (recvPos == sizeof(rplidar_response_capsule_measurement_nodes_t)) {
-            // calc the checksum ...
-            _u8 checksum = 0;
-            _u8 recvChecksum = ((node->s_checksum_1 & 0xF) | (node->s_checksum_2 << 4));
-            for (size_t cpos = 2;  // Not supported in C  offsetof(rplidar_response_capsule_measurement_nodes_t, start_angle_sync_q6);
-                cpos < sizeof(rplidar_response_capsule_measurement_nodes_t); ++cpos)
-            {
-                checksum ^= nodeBuffer[cpos];
-            }
+		switch (recvPos) {
+		case 0: // expect the sync bit 1
+		{
+			_u8 tmp = (currentByte >> 4);
+			if (tmp == RPLIDAR_RESP_MEASUREMENT_EXP_SYNC_1) {
+				// pass
+			}
+			else {
+				_is_previous_capsuledataRdy = false;
+				result = RESULT_WAITING;
+			}
+
+		}
+		break;
+		case 1: // expect the sync bit 2
+		{
+			_u8 tmp = (currentByte >> 4);
+			if (tmp == RPLIDAR_RESP_MEASUREMENT_EXP_SYNC_2) {
+				// pass
+			}
+			else {
+				recvPos = 0;
+				_is_previous_capsuledataRdy = false;
+				result = RESULT_WAITING;
+			}
+		}
+		break;
+		}
+
+		nodeBuffer[recvPos++] = currentByte;
+		if (recvPos == sizeof(rplidar_response_capsule_measurement_nodes_t)) {
+			// calc the checksum ...
+			_u8 checksum = 0;
+			_u8 recvChecksum = ((node->s_checksum_1 & 0xF) | (node->s_checksum_2 << 4));
+			for (size_t cpos = 2;  // Not supported in C  offsetof(rplidar_response_capsule_measurement_nodes_t, start_angle_sync_q6);
+				cpos < sizeof(rplidar_response_capsule_measurement_nodes_t); ++cpos)
+			{
+				checksum ^= nodeBuffer[cpos];
+			}
             if (recvChecksum == checksum)
             {
                 // only consider vaild if the checksum matches...
@@ -295,18 +303,76 @@ u_result _waitCapsuledNodeRTOS(rplidar_response_capsule_measurement_nodes_t* nod
                 {
                     // this is the first capsule frame in logic, discard the previous cached data...
                     _is_previous_capsuledataRdy = false;
+                    recvPos = 0;
                     return RESULT_OK;
                 }
                 return RESULT_OK;
             }
-            _is_previous_capsuledataRdy = false;
-            return RESULT_INVALID_DATA;
-        } 
-      
-        _is_previous_capsuledataRdy = false;
-    return RESULT_WAITING;
+            else
+            {
+                _is_previous_capsuledataRdy = false;
+                recvPos = 0;
+                result = RESULT_INVALID_DATA;
+            }
+		}
+	}
+
+	_is_previous_capsuledataRdy = false;
+	return RESULT_WAITING;
 
 }
+
+// Get Capsule data if needed and return the number added.
+int16_t loopScanExpressAddDataRTOS()
+{
+    //    static uint16_t recvNodeCount = 0;
+    u_result ans;
+    rplidar_response_capsule_measurement_nodes_t capsule_node;
+    rplidar_response_measurement_node_t nodes[32];
+    int16_t x, y, goodCount = 0;
+    float ang;
+
+
+    // Look for a valid Capsule
+    if  (ans = _waitCapsuledNodeRTOS( & capsule_node, false) == RESULT_WAITING) {
+       // _isScanning = false;
+        return RESULT_WAITING;
+    }
+
+    size_t count = 0;
+
+    // Convert Capsule to line format
+    _capsuleToNormal16(&capsule_node, nodes, &count);
+
+    for (size_t pos = 0; pos < count; ++pos) {
+
+        // If this sample > 0 and there is no previous sample at this location, then add it.
+        if ((nodes[pos].distance_q2 > 0) && (finalLineData[nodes[pos].angle_q6_checkbit >> 6].distance_q2 == 0))
+        {
+            int angle = nodes[pos].angle_q6_checkbit >> 6;
+            if (angle < 180)
+            {
+                finalLineData[angle].distance_q2 = nodes[pos].distance_q2;
+                finalLineData[angle].angle_q6_checkbit = nodes[pos].angle_q6_checkbit;
+                ang = (float)(finalLineData[angle].angle_q6_checkbit >> 6);
+                ang = ang * (float)0.0174533;
+                // If this box is in the active area mark it.
+                x = (int)trunc(-1.0 * cos(ang) * (float)(finalLineData[angle].distance_q2 >> 2));
+                y = (int)trunc(sin(ang) * (float)(finalLineData[angle].distance_q2 >> 2));
+
+                if ((insideX_left < x) && (x < insideX_right) && (y < inside_up))
+                {
+                    finalLineData[angle].sync_quality = 1;
+                }
+                goodCount++;
+
+
+            }
+        }
+    }
+    return goodCount;
+}
+
 
 
 u_result _waitCapsuledNode(rplidar_response_capsule_measurement_nodes_t *node, _u32 timeout)
@@ -399,6 +465,7 @@ u_result loopScanExpressData6()
     int16_t x, y;
     float ang;
 
+    
     if (IS_FAIL(ans = _waitCapsuledNode(&capsule_node, DEFAULT_TIMEOUT))) {
         _isScanning = false;
         return RESULT_OPERATION_FAIL;
@@ -427,7 +494,7 @@ u_result loopScanExpressData6()
                 if ((insideX_left < x) && (x < insideX_right) && (y < inside_up))
                 {
                     finalLineData[angle].sync_quality = 1;
-                }
+                } 
 
       
             }
