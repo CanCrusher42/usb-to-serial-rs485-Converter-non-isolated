@@ -74,7 +74,7 @@ struct RplidarScanMode {
     u_result startScanNormal(bool force, _u32 timeout );
     u_result stop(_u32 timeout);
     u_result loopScanExpressData6();
-
+    u_result loopScanExpressAddDataRTOS(bool start, uint16_t* sampleCount);
 
     u_result _sendCommand(_u8 cmd, void * payload , size_t payloadsize );
 

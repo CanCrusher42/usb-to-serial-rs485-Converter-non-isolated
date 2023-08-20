@@ -18,9 +18,10 @@
 
 bool serialTestMode = false;
 #ifdef TEST_SERIAL
-int testBuffer[128];
+int testBuffer[12800];
 int16_t testBufferIndex = 0;
 int16_t maxTextBufferIndex = 0;
+bool testEmpty = false;
 #endif
 
 #if defined(_WIN32)
@@ -227,14 +228,25 @@ void lidarSerial_write(uint8_t* header, uint16_t length)
 
 int lidarSerial_read()
 {
+
 #ifdef TEST_SERIAL
-	if (testBufferIndex < maxTextBufferIndex)
+
+	if ((((testBufferIndex+1) % 33) == 0) && (testEmpty == false))
+	{
+		testEmpty = true;
+	}
+	else 
+		testEmpty = false;
+
+	if ((testBufferIndex < maxTextBufferIndex) && (testEmpty==false))
 	{
 		return testBuffer[testBufferIndex++];
 	}
 	else
 		return -1;
 #endif
+
+
 	DWORD NoBytesExpected = 1;
 	DWORD NoBytesRecieved = 0;
 	bool Status;

@@ -247,7 +247,7 @@ u_result _waitCapsuledNodeRTOS(rplidar_response_capsule_measurement_nodes_t* nod
 
 	while (1)
 	{
-		size_t remainSize = sizeof(rplidar_response_capsule_measurement_nodes_t) - recvPos;
+	//	size_t remainSize = sizeof(rplidar_response_capsule_measurement_nodes_t) - recvPos;
 		// need loop until
 		currentbyte = lidarSerial_read();
 		if (currentbyte < 0)
@@ -306,6 +306,7 @@ u_result _waitCapsuledNodeRTOS(rplidar_response_capsule_measurement_nodes_t* nod
                     recvPos = 0;
                     return RESULT_OK;
                 }
+                recvPos = 0;
                 return RESULT_OK;
             }
             else
@@ -316,25 +317,34 @@ u_result _waitCapsuledNodeRTOS(rplidar_response_capsule_measurement_nodes_t* nod
             }
 		}
 	}
-
+     
 	_is_previous_capsuledataRdy = false;
 	return RESULT_WAITING;
 
 }
 
+#pragma message("Move this to correct location")
+rplidar_response_capsule_measurement_nodes_t gCapsule_node;
+
+
 // Get Capsule data if needed and return the number added.
-int16_t loopScanExpressAddDataRTOS()
+
+
+u_result loopScanExpressAddDataRTOS(bool start, uint16_t *sampleCount)
 {
     //    static uint16_t recvNodeCount = 0;
     u_result ans;
-    rplidar_response_capsule_measurement_nodes_t capsule_node;
+
     rplidar_response_measurement_node_t nodes[32];
-    int16_t x, y, goodCount = 0;
+    int16_t x, y;
+
     float ang;
+
+    *sampleCount = 0;
 
 
     // Look for a valid Capsule
-    if  (ans = _waitCapsuledNodeRTOS( & capsule_node, false) == RESULT_WAITING) {
+    if  (ans = _waitCapsuledNodeRTOS( &gCapsule_node, start) == RESULT_WAITING) {
        // _isScanning = false;
         return RESULT_WAITING;
     }
@@ -342,9 +352,10 @@ int16_t loopScanExpressAddDataRTOS()
     size_t count = 0;
 
     // Convert Capsule to line format
-    _capsuleToNormal16(&capsule_node, nodes, &count);
+    _capsuleToNormal16(&gCapsule_node, nodes, &count);
 
-    for (size_t pos = 0; pos < count; ++pos) {
+    for (size_t pos = 0; pos < count; ++pos) 
+    {
 
         // If this sample > 0 and there is no previous sample at this location, then add it.
         if ((nodes[pos].distance_q2 > 0) && (finalLineData[nodes[pos].angle_q6_checkbit >> 6].distance_q2 == 0))
@@ -364,13 +375,14 @@ int16_t loopScanExpressAddDataRTOS()
                 {
                     finalLineData[angle].sync_quality = 1;
                 }
-                goodCount++;
+                *sampleCount = *sampleCount+1;
 
 
             }
         }
     }
-    return goodCount;
+
+    return RESULT_OK;
 }
 
 
