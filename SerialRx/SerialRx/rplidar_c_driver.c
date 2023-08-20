@@ -228,34 +228,26 @@ u_result getDeviceInfo(rplidar_response_device_info_t* info, _u32 timeout)
 u_result _waitCapsuledNodeRTOS(rplidar_response_capsule_measurement_nodes_t* node, bool  new)
 {
 	static _u8  recvPos = 0;
-	//static _u8  recvBuffer[8];
-    static _u8 pos = 0;
-
 
     _u8* nodeBuffer = (_u8*)node;
 	int16_t currentbyte;
 	_u8 currentByte;
-      
     u_result result = RESULT_WAITING;
 
 	if (new)
 	{
 		recvPos = 0;
-		pos = 0;
 	}
 
 
 	while (1)
 	{
-	//	size_t remainSize = sizeof(rplidar_response_capsule_measurement_nodes_t) - recvPos;
-		// need loop until
 		currentbyte = lidarSerial_read();
 		if (currentbyte < 0)
 			return RESULT_WAITING;
 
 
 		currentByte = currentbyte & 0xFF;
-
 
 		switch (recvPos) {
 		case 0: // expect the sync bit 1
@@ -265,10 +257,11 @@ u_result _waitCapsuledNodeRTOS(rplidar_response_capsule_measurement_nodes_t* nod
 				// pass
 			}
 			else {
+                // Something happened to data stream, resync state machines.
+                recvPos = 0;
 				_is_previous_capsuledataRdy = false;
 				result = RESULT_WAITING;
 			}
-
 		}
 		break;
 		case 1: // expect the sync bit 2
@@ -278,6 +271,7 @@ u_result _waitCapsuledNodeRTOS(rplidar_response_capsule_measurement_nodes_t* nod
 				// pass
 			}
 			else {
+                // Something happened to data stream, resync state machines.
 				recvPos = 0;
 				_is_previous_capsuledataRdy = false;
 				result = RESULT_WAITING;
@@ -311,16 +305,14 @@ u_result _waitCapsuledNodeRTOS(rplidar_response_capsule_measurement_nodes_t* nod
             }
             else
             {
+                // Something happened to data stream, resync state machines.
                 _is_previous_capsuledataRdy = false;
                 recvPos = 0;
                 result = RESULT_INVALID_DATA;
             }
 		}
 	}
-     
-	_is_previous_capsuledataRdy = false;
 	return RESULT_WAITING;
-
 }
 
 #pragma message("Move this to correct location")
@@ -329,7 +321,10 @@ rplidar_response_capsule_measurement_nodes_t gCapsule_node;
 
 // Get Capsule data if needed and return the number added.
 
-
+// 1)  Check to see if there is a valid capsule of data availible. - Capsule will be stored in gCapsule_node
+// 2)  Convert raw capsule data to an array of 32 data points   nodes[]
+// 3)  Scan each of the 33 nodes to check for valid data & non-duplicate data.  If so, Calculate cartisian coordiates and use this to determine if its in the active box. Increment sample count.
+// 
 u_result loopScanExpressAddDataRTOS(bool start, uint16_t *sampleCount)
 {
     //    static uint16_t recvNodeCount = 0;
@@ -343,7 +338,7 @@ u_result loopScanExpressAddDataRTOS(bool start, uint16_t *sampleCount)
     *sampleCount = 0;
 
 
-    // Look for a valid Capsule
+    // Get new data and place it in gCapsule_node.  Notify when capsule is complete. 
     if  (ans = _waitCapsuledNodeRTOS( &gCapsule_node, start) == RESULT_WAITING) {
        // _isScanning = false;
         return RESULT_WAITING;
@@ -351,12 +346,12 @@ u_result loopScanExpressAddDataRTOS(bool start, uint16_t *sampleCount)
 
     size_t count = 0;
 
-    // Convert Capsule to line format
+    // Convert Capsule to line format IFF gCapsuleNode is valid and there is a previous cacheline
     _capsuleToNormal16(&gCapsule_node, nodes, &count);
 
+    // If there is not a previous cacheline count will equal 0.
     for (size_t pos = 0; pos < count; ++pos) 
     {
-
         // If this sample > 0 and there is no previous sample at this location, then add it.
         if ((nodes[pos].distance_q2 > 0) && (finalLineData[nodes[pos].angle_q6_checkbit >> 6].distance_q2 == 0))
         {
@@ -376,8 +371,6 @@ u_result loopScanExpressAddDataRTOS(bool start, uint16_t *sampleCount)
                     finalLineData[angle].sync_quality = 1;
                 }
                 *sampleCount = *sampleCount+1;
-
-
             }
         }
     }
@@ -586,9 +579,13 @@ int _getSyncBitByAngle(const int current_angle_q16, const int angleInc_q16)
 }
 */
 
+// 
 void _capsuleToNormal16(rplidar_response_capsule_measurement_nodes_t* capsule, rplidar_response_measurement_node_t* nodebuffer, size_t* nodeCount)
 {
     *nodeCount = 0;
+    
+    //_is_previous_capsuledataRdy is updated at the end of this function.  
+    // If we make it, it then means we have gotten the first packet of good data.
     if (_is_previous_capsuledataRdy) {
         int16_t diffAngle_q6;
         int16_t currentStartAngle_q6 = ((capsule->start_angle_sync_q6 & 0x7FFF) );
@@ -599,7 +596,6 @@ void _capsuleToNormal16(rplidar_response_capsule_measurement_nodes_t* capsule, r
             diffAngle_q6 += (360 << 6);
             printf("*");
             scans++;
-
         }
 
         int16_t angleInc_q6 = (diffAngle_q6 / 32);  // 5 bits
@@ -649,10 +645,10 @@ void _capsuleToNormal16(rplidar_response_capsule_measurement_nodes_t* capsule, r
                 nodebuffer[*nodeCount] = node;
                 *nodeCount = *nodeCount + 1;
             }
-
         }
     }
 
+    // Copy data to the cached version
     _cached_previous_capsuledata = *capsule;
     _is_previous_capsuledataRdy = true;
 }
