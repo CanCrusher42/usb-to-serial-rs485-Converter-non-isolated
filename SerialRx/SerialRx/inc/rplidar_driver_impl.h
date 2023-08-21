@@ -39,7 +39,9 @@
 #include "rptypes.h"
 #include "rplidar_cmd.h"
 
+#if defined (_WIN32)
 #define NULL (void*)0
+#endif
 
 struct RplidarScanMode {
     _u16    id;

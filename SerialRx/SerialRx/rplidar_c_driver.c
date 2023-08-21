@@ -389,7 +389,6 @@ u_result _waitCapsuledNode(rplidar_response_capsule_measurement_nodes_t *node, _
     _u32 waitTime;
 
     while ((waitTime = millis() - startTs) <= timeout) {
-        size_t remainSize = sizeof(rplidar_response_capsule_measurement_nodes_t) - recvPos;
 
         int currentbyte = lidarSerial_read();
         if (currentbyte < 0) continue;

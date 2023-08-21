@@ -261,7 +261,7 @@ void ConvertDisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t mi
 	int minX = 1000, maxX = -1000;
 	int maxY = -1000;
 	int maxYcol = 0;
-	uint16_t angleOffset = startAngle;
+//	uint16_t angleOffset = startAngle;
 	int yPerRow, xPerColumn;
 	char displayLine[200];
 	float ang;

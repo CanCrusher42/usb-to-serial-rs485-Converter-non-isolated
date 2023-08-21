@@ -27,7 +27,7 @@ bool testEmpty = false;
 #if defined(_WIN32)
 HANDLE hComm;
 #else
-#include "../mcc_generated_files/uart/uart2.h"
+#include "../mcc_generated_files/uart2.h"
 
 
 
@@ -64,7 +64,6 @@ int lidarClear_serial()
 	return true;
 }
 #endif
-
 
 #if defined (_WIN32)
 
