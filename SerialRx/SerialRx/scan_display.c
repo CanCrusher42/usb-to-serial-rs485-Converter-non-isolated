@@ -143,7 +143,7 @@ void printBottomXScale(int startX, int endX, int xPerIndex, int pads )
 	// Display bottom scale
 	for (int loc = 5; loc >= 0; loc--)
 	{
-		unsigned int power = 1;
+		uint32_t power = 1;
 		if (loc == 5) power = 100000;
 		if (loc == 4) power = 10000;
 		if (loc == 3) power = 1000;

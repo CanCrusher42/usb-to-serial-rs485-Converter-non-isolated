@@ -339,7 +339,7 @@ u_result loopScanExpressAddDataRTOS(bool start, uint16_t *sampleCount)
 
 
     // Get new data and place it in gCapsule_node.  Notify when capsule is complete. 
-    if  (ans = _waitCapsuledNodeRTOS( &gCapsule_node, start) == RESULT_WAITING) {
+    if  ((ans = _waitCapsuledNodeRTOS( &gCapsule_node, start)) == RESULT_WAITING) {
        // _isScanning = false;
         return RESULT_WAITING;
     }
