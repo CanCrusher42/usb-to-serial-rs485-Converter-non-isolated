@@ -76,13 +76,13 @@ struct RplidarScanMode {
     u_result startScanNormal(bool force, _u32 timeout );
     u_result stop(_u32 timeout);
     u_result loopScanExpressData6();
-    u_result loopScanExpressAddDataRTOS(bool start, uint16_t* sampleCount);
+    u_result loopScanExpressAddDataRTOS(bool start, uint16_t* sampleCount, uint16_t rotate);
 
     u_result _sendCommand(_u8 cmd, void * payload , size_t payloadsize );
 
     void     _disableDataGrabbing();
     u_result _waitCapsuledNode(rplidar_response_capsule_measurement_nodes_t * node, _u32 timeout);
-    void     _capsuleToNormal16(rplidar_response_capsule_measurement_nodes_t* capsule, rplidar_response_measurement_node_t* nodebuffer, size_t* nodeCount);
+    void     _capsuleToNormal16(rplidar_response_capsule_measurement_nodes_t* capsule, rplidar_response_measurement_node_t* nodebuffer, size_t* nodeCount, uint16_t rotate);
 
 
 #endif

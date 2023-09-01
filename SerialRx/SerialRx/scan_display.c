@@ -265,6 +265,8 @@ void ConvertDisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t mi
 	int yPerRow, xPerColumn;
 	char displayLine[200];
 	float ang;
+
+
 	// Get Scale Values
 	for (uint16_t angle = startAngle; angle < (startAngle + 180); angle++)
 	{
@@ -299,17 +301,15 @@ void ConvertDisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t mi
 	// Need to force round up.
 	xPerColumn = ((absBounds * 2)+179) / 180; // 180 columns
 
-//	int rowUpper, rowLower;
+	printf("xPerColum = %d, yPerRow = %d\n", xPerColumn, yPerRow);
+	// Force Them
+	xPerColumn = 86;
+	yPerRow = 290;
+	absBounds = xPerColumn * 90;
+
 	int divX, divY;
 	int colStart = xPerColumn * (-90);
 	
-
-	for (int angle = 0; angle < 180; angle++)
-	{
-		divX = (xValue[angle]-colStart) / xPerColumn;
-		divY = (yValue[angle] / yPerRow);
-		printf("%d %d (%3.2f) %d  %d %d - mod %d %d\n", angle, finalLineData[angle].angle_q6_checkbit, (1.0*finalLineData[angle].angle_q6_checkbit)/64.0, finalLineData[angle].distance_q2,  xValue[angle], yValue[angle], divX, divY);
-	}
 
 	// Now paint from the top row (Farthest away from the sensor first)
 	ClearBlobs();
@@ -330,8 +330,6 @@ void ConvertDisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t mi
 					{
 						displayLine[divX] = '@';
 						addPointToBlobList(divX, divY);
-
-
 					}
 					else
 						displayLine[divX] = '.';
@@ -347,12 +345,12 @@ void ConvertDisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t mi
 		displayLine[180] = 0;
 		printf("%3d %05d|", row, row * yPerRow);
 		printf("        %s\n", displayLine);
-		PrintBlobList();
-
-
 	}
 
 	printBottomXScale(-1 * absBounds, absBounds, 2 * absBounds / 180, 5);
-
+	float angle1 = 0.0;
+	int16_t distance = 0;
+	GetLargestBlobData(&angle1, &distance);
+	printf("Blob Angle = %3.0f  Blob Distance = %4d\n", angle1 * 57.3, distance);
 }
 

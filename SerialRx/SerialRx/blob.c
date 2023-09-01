@@ -197,9 +197,6 @@ uint8_t GetLargestBlob()
 		{
 			
 			uint32_t tempSize = GetBlobSize(i);
-				
-//				(blobList[i].xRight - blobList[i].xLeft) + 1;
-//			tempSize *= (blobList[i].yUpper- blobList[i].yLower +1 );
 			if (tempSize > largestSize)
 			{
 				largestSize = tempSize;
@@ -210,3 +207,73 @@ uint8_t GetLargestBlob()
 	return largestIndex;
 }
 
+void GetLargestBlobData(float *angle, uint16_t *distance)
+{
+
+	uint8_t index = GetLargestBlob();
+	*angle = GetAngleToBlob(index);
+	*distance = GetDistanceToBlobCenter(index);
+
+}
+
+#define NUM_COLS  180 
+#define NUM_ROWS  50
+// to calculate what xPerColumn should be, figure out the max x distance in one direction in mm.  Then devide this by (NUM_COLS/2)
+// to calculate what yPerRow should be, figure out the max Y distance in mm.  Then devide this by (NUM_ROWS/2)
+int CreateBlobsFromFinalLineData(uint16_t xPerColumn, uint16_t yPerRow)
+{
+	int16_t divX, divY;
+	int16_t xValue[182] = { 0 };
+	int16_t yValue[182] = { 0 };
+	int16_t minX = 1000;
+
+	float ang;
+
+	minX = (NUM_COLS / -2) * xPerColumn;
+
+	// Compute cartisian values
+	for (uint16_t angle = 0; angle < 180; angle++)
+	{
+		if ((finalLineData[angle].angle_q6_checkbit >> 6) != 0)
+		{
+			ang = (float)(finalLineData[angle].angle_q6_checkbit >> 6);
+			ang = ang * 0.0174533F;
+			xValue[angle] = (int)trunc(-1.0 * cos(ang) * (float)(finalLineData[angle].distance_q2 >> 2));
+			yValue[angle] = (int)trunc(       sin(ang) * (float)(finalLineData[angle].distance_q2 >> 2));
+		}
+		else
+		{
+			xValue[angle] = 0;
+			yValue[angle] = 0;
+		}
+
+	}
+
+
+	
+	ClearBlobs();
+	for (int16_t row = NUM_ROWS; row > 0; row--)
+	{
+		for (uint16_t col = 0; col < 180; col++)
+		{
+			//divX = (xValue[col] - colStart) / xPerColumn;
+			divX = (xValue[col] - minX) / xPerColumn;
+			divY = (yValue[col] / yPerRow);
+			if (divY == row)
+			{
+				if ((divX < 0) || (divX > 180))
+					printf("ERROR Bad DIV X %d\n\n\n\n", divX);
+				else
+				{
+					if (finalLineData[col].sync_quality != 0)
+					{
+						addPointToBlobList((int8_t)divX, (int8_t)divY);
+					}
+				}
+			}
+		}
+	}
+
+	return 0;
+
+}

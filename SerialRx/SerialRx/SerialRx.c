@@ -82,7 +82,7 @@
 
 HANDLE hComm;
 
-#define LPLIBRARY
+//#define LPLIBRARY
 
 #ifndef LPLIBRARY
 #pragma pack(1)
@@ -101,6 +101,8 @@ char  SerialBuffer[SERIAL_BUFFER_SIZE];               // Buffer Containing Rxed 
 struct sample_struct lineBuffer[LINE_BUFFER_SIZE];
 uint8_t scanMode = 0;
 enum eSCAN_MODES { BASIC_SCAN = 0x20, EXPRESS_SCAN = 0x82 };
+void ConvertDisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t minQuality, uint16_t maxHeight);
+
 
 #define LIDAR_STOP  0x25
 #define LIADR_RESET 0x40
@@ -164,7 +166,7 @@ void PrintRawBuffer(uint8_t* buffer, int numChars, enum eSCAN_MODES mode)
 
 }
 
-void DisplayLineToRoom(struct sample_struct sampleLine[LINE_BUFFER_SIZE], int numSamples, uint16_t startAngle, uint16_t endAngle, uint8_t minQuality, uint16_t maxHeight)
+void DisplayLineToRoom2(struct sample_struct sampleLine[LINE_BUFFER_SIZE], int numSamples, uint16_t startAngle, uint16_t endAngle, uint8_t minQuality, uint16_t maxHeight)
 {
 	// Middle Angle = startAngle+90;
 	// Get Max Neg and Pos X
@@ -232,7 +234,7 @@ void DisplayLineToRoom(struct sample_struct sampleLine[LINE_BUFFER_SIZE], int nu
 
 	
 }
-void DisplayLineDistance(struct sample_struct sampleLine[LINE_BUFFER_SIZE],int numSamples,  uint16_t startAngle, uint16_t endAngle, uint8_t minQuality, uint16_t maxHeight)
+void DisplayLineDistance2(struct sample_struct sampleLine[LINE_BUFFER_SIZE],int numSamples,  uint16_t startAngle, uint16_t endAngle, uint8_t minQuality, uint16_t maxHeight)
 {
 	char displayLine[365];
 	uint16_t width = endAngle - startAngle;
@@ -526,7 +528,7 @@ bool TestTransferExpressGroupToLine()
 
 
 
-bool OpenLpLidar(/*HANDLE hComm*/)
+bool OpenLpLidar2(/*HANDLE hComm*/)
 {
 //	HANDLE hComm;                          // Handle to the Serial port
 	TCHAR* pcCommPort = TEXT("COM5");
@@ -1174,7 +1176,8 @@ int getRawExpressScanLineOfData(HANDLE hComm, int numChars)
 
 #define DO_EPRESS
 //#define DO_BASIC 
-	void main(void)
+
+void main(void)
 		{
 			BOOL  Status;                          // Status of the various operations 
 
@@ -1182,8 +1185,9 @@ int getRawExpressScanLineOfData(HANDLE hComm, int numChars)
 			printf("\n\n");
 	//		DisplayLineDistance(lineBuffer, 100, 0, 180, 80, 50);
 			enum eSCAN_MODES scanMode = EXPRESS_SCAN; // { BASIC_SCAN = 0x20, EXPRESS_SCAN = 0x82 };
-			Status = OpenLpLidar();
-			
+			//Status = OpenLpLidar();
+			Status = rb_begin();
+			testExpressScanMode();
 #ifdef DO_BASIC
 			int samples = 2600;
 			scanMode = BASIC_SCAN;
@@ -1194,7 +1198,7 @@ int getRawExpressScanLineOfData(HANDLE hComm, int numChars)
 			ResetAndStartCapture(hComm, EXPRESS_SCAN);
 #endif
 			
-#define numberOfScans 1
+#define numberOfScans 5
 
 			memset(lineBuffer, 0, sizeof(lineBuffer));
 			int bytesInLine;
@@ -1206,7 +1210,7 @@ int getRawExpressScanLineOfData(HANDLE hComm, int numChars)
 				getRawExpressScanLineOfData(hComm, samples);
 #endif
 			//	system("cls");
-				PrintRawBuffer(SerialBuffer, samples, scanMode);
+		//		PrintRawBuffer(SerialBuffer, samples, scanMode);
 
 #ifdef DO_BASIC 
 				bytesInLine = TransferBasicArrayToLine(SerialBuffer, lineBuffer, 2);
@@ -1217,14 +1221,14 @@ int getRawExpressScanLineOfData(HANDLE hComm, int numChars)
 			StopAndGetLidarInfo(hComm);
 			//while (1);
 			//system("cls");
-			DisplayLineQuality(lineBuffer, bytesInLine / 5, 0, 180, 80, 10);
+		//	DisplayLineQuality(lineBuffer, bytesInLine / 5, 0, 180, 80, 10);
 
 		//	system("cls");
-			printf("\n\n");
-			DisplayLineDistance(lineBuffer, bytesInLine / 5, 0, 180, 80, 50);
+//			printf("\n\n");
+//			DisplayLineDistance(lineBuffer, bytesInLine / 5, 0, 180, 80, 50);
 
 			printf("\n\n\n\n");
-			DisplayLineToRoom(lineBuffer, bytesInLine / 5, 0, 180, 80, 50);
+			ConvertDisplayLineToRoom(/*lineBuffer, bytesInLine / 5,*/ 0, 180, 80, 50);
 			CloseHandle(hComm);//Closing the Serial Port
 			printf("\n +==========================================+\n");
 			_getch();
@@ -1236,10 +1240,10 @@ int getRawExpressScanLineOfData(HANDLE hComm, int numChars)
 void main()
 {
 	
-	bool runAllTests();
-	int RunBlobTests();
+	//bool runAllTests();
+	//int RunBlobTests();
 	bool runAllRtosTests();
-	runAllRtosTests();
+	 runAllRtosTests();
 	//RunBlobTests();
 	//runAllTests();
 
