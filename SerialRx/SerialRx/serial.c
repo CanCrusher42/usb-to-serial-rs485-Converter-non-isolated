@@ -14,7 +14,12 @@
 
 #include "serial.h"
 
-//#define TEST_SERIAL
+#define TEST_SERIAL
+
+
+
+
+
 
 bool serialTestMode = false;
 #ifdef TEST_SERIAL

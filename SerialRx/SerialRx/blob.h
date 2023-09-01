@@ -21,9 +21,10 @@ void ClearBlobNumber(uint8_t i);
 void ClearFinalLineData();
 int8_t addPointToBlobList(int8_t x, int8_t y);
 void MergeSecondBlobIntoFirst(uint8_t firstBlob, uint8_t secondBlob);
+int  CreateBlobsFromFinalLineData(uint16_t xPerColumn, uint16_t yPerRow);
+
+
 uint16_t GetBlobCount();
-
-
 float    GetAngleToBlob(int8_t blob);
 uint32_t GetBlobSize(uint8_t blob);
 uint16_t GetDistanceToBlobCenter(uint8_t blob);

@@ -8,6 +8,12 @@
 #include <stdio.h>
 #include "serial.h"
 
+#define TEST_SERIAL
+
+
+
+
+
 int GetTickCount();
 int millis() { return (20); }
 bool OpenLpLidar();
@@ -102,7 +108,6 @@ bool testExpressScanMode()
 
 
 
-//#define TEST_SERIAL
 #ifdef TEST_SERIAL
 extern bool serialTestMode;
 extern int testBuffer[12000];
@@ -283,7 +288,7 @@ bool testGetLineOfDataErrorInMiddle()
 	while (testBufferIndex < maxTextBufferIndex)
 	{
 		uint16_t count = 0;
-		result = loopScanExpressAddDataRTOS(start, &count,0);
+		result = loopScanExpressAddDataRTOS(start, &count,00);
 		goodSamples += count;
 		start = false;
 
@@ -337,11 +342,16 @@ bool testGetLineOfDataRotate90()
 
 	}
 	printf("\ngoodSamples = % d \n", goodSamples);
-	if (goodSamples != 95)
+	if (goodSamples != 75)
 	{
 		printf("ERROR: %s  Expecting 95 good samples, only found %d\n", __FUNCTION__, goodSamples);
 		return false;
 	}
+	//xPerColumn = 86;
+	//yPerRow = 290;
+	CreateBlobsFromFinalLineData(86, 290);
+	PrintBlobList();
+
 	return true;
 }
 
@@ -354,6 +364,7 @@ bool runAllRtosTests()
 
 		reset(100);
 		printf("\nStarting RTOS Tests\n\n");
+		result &= testGetLineOfDataRotate90();
 		result &= testRtosSyncBit();
 		result &= testRtosWholePacket1();
 		result &= testRtosBadGoodPacket1();

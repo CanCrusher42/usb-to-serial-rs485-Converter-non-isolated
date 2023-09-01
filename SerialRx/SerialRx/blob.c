@@ -54,7 +54,7 @@ void PrintBlobList()
 		}
 	}
 	uint8_t largestBlob = GetLargestBlob();
-	printf("Angle to largest Blob = %3f  Distance = %d\n", GetAngleToBlob(largestBlob)* 57.2958, GetDistanceToBlobCenter(largestBlob));
+	printf("Angle to largest Blob = %3f degrees  Distance = %d size = %d\n", GetAngleToBlob(largestBlob)* 57.2958F, GetDistanceToBlobCenter(largestBlob), GetBlobSize(largestBlob));
 
 
 

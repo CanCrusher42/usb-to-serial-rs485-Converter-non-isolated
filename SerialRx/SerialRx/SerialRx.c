@@ -82,7 +82,7 @@
 
 HANDLE hComm;
 
-//#define LPLIBRARY
+#define LPLIBRARY
 
 #ifndef LPLIBRARY
 #pragma pack(1)
