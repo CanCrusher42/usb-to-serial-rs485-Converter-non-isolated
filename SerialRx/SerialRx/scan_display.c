@@ -258,6 +258,7 @@ void ConvertDisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t mi
 	// Get Max Neg and Pos Y
 	int xValue[182] = { 0 };
 	int yValue[182] = { 0 };
+	float fAngle[182] = { 0 };
 	int minX = 1000, maxX = -1000;
 	int maxY = -1000;
 	int maxYcol = 0;
@@ -273,7 +274,10 @@ void ConvertDisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t mi
 		if ((finalLineData[angle].angle_q6_checkbit >> 6) != 0)
 		{
 			ang = (float)(finalLineData[angle].angle_q6_checkbit >> 6);
-			ang =  ang * (float)0.0174533;
+			ang = ((float)(finalLineData[angle].angle_q6_checkbit)) / 64.0;
+			fAngle[angle - startAngle] = ang;
+			ang =  ang * 0.0174533F;
+
 			xValue[angle - startAngle] = (int)trunc(-1.0 * cos(ang) * (float)(finalLineData[angle].distance_q2 >> 2));
 			yValue[angle - startAngle] = (int)trunc(       sin(ang) * (float)(finalLineData[angle].distance_q2 >> 2));
 		}
@@ -303,9 +307,11 @@ void ConvertDisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t mi
 
 	printf("xPerColum = %d, yPerRow = %d\n", xPerColumn, yPerRow);
 	// Force Them
-	xPerColumn = 86;
-	yPerRow = 290;
-	absBounds = xPerColumn * 90;
+
+// Harcoded for a specific test case
+//	xPerColumn = 86;
+//	yPerRow = 290;
+//	absBounds = xPerColumn * 90;
 
 	int divX, divY;
 	int colStart = xPerColumn * (-90);
