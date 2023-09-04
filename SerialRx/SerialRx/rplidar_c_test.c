@@ -10,10 +10,6 @@
 
 #include "scan_display.h"
 
-#define TEST_SERIAL
-
-
-
 
 
 int GetTickCount();
@@ -63,6 +59,7 @@ bool testBasicCommandInfo()
 	return false;
 }
 extern uint16_t scans;
+
 bool testExpressScanMode()
 {
 	int loopCount = 0;
@@ -92,11 +89,8 @@ bool testExpressScanMode()
 			//printf("_cached_scan_node_hq_count = %d\n", loopCount);
 		}
 		endTime = GetTickCount();
-		//printf("Delta Time = %d scans = %d\n", endTime - startTime, scans);
-		//printf("ScanRate = %d\n", scans/((endTime-startTime)/1000));
+
 		system("cls");
-		//DisplayLineDistance(0, 180, 20, 50);
-		//DisplayLineAngle(0, 180, 20, 50);
 		ConvertDisplayLineToRoom(0, 180, 20, 50, 0 , 0);
 		
 
@@ -106,6 +100,53 @@ bool testExpressScanMode()
 	}
 	return true;
 }
+
+
+
+bool testExpressScanModeRTOS()
+{
+	int loopCount = 0;
+	int screens = 0;
+	bool start = true;
+	u_result result = startScanExpress(false, RPLIDAR_CONF_SCAN_COMMAND_EXPRESS, 0, NULL, 200);
+
+	if (result != RESULT_OK)
+	{
+		printf("ERROR %s from startScanExpress 0x%x\n", __FUNCTION__, result);
+		return false;
+	}
+
+	int startTime, endTime;
+
+	while (screens < 200)
+	{
+
+		startTime = GetTickCount();
+		memset(finalLineData, 0, sizeof(finalLineData));
+		scans = 0;
+		uint16_t goodSamples = 0;
+		uint16_t count = 0;
+		while (goodSamples < 100)
+		{
+			count = 0;
+			result = loopScanExpressAddDataRTOS(start, &count,0);
+			goodSamples += count;
+			start = false;
+		}
+
+		endTime = GetTickCount();
+
+		system("cls");
+		ConvertDisplayLineToRoom(0, 180, 20, 50, 0, 0);
+
+
+		lidarClear_serial();
+		screens++;
+		loopCount = 0;
+	}
+	return true;
+}
+
 
 
 
@@ -206,6 +247,12 @@ bool testRtosBadGoodPacket1()
 
 	return (result == RESULT_OK);
 }
+
+
+
+
+
+
 
 
 
@@ -554,13 +601,21 @@ bool runAllRtosTests()
 
 		reset(100);
 		printf("\nStarting RTOS Tests\n\n");
-		result &= testGetLineOfDataNormal();
-		result &= testGetLineOfDataRotate90();
-		result &= testRtosSyncBit();
-		result &= testRtosWholePacket1();
-		result &= testRtosBadGoodPacket1();
-		result &= testGetLineOfData();
-		result &= testGetLineOfDataErrorInMiddle();
+		if (1)
+		{
+			testExpressScanModeRTOS();
+		}
+		else
+		{
+
+			result &= testGetLineOfDataNormal();
+			result &= testGetLineOfDataRotate90();
+			result &= testRtosSyncBit();
+			result &= testRtosWholePacket1();
+			result &= testRtosBadGoodPacket1();
+			result &= testGetLineOfData();
+			result &= testGetLineOfDataErrorInMiddle();
+		}
 //		result &= testGetLineOfDataRotate90();
 		if (result == false)
 		{

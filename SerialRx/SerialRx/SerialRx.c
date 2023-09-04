@@ -84,6 +84,8 @@ HANDLE hComm;
 
 #define LPLIBRARY
 
+
+
 #ifndef LPLIBRARY
 #pragma pack(1)
 struct sample_struct {

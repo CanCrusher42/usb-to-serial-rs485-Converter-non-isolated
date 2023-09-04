@@ -54,7 +54,7 @@ void PrintBlobList()
 		}
 	}
 	uint8_t largestBlob = GetLargestBlob();
-	printf("Angle to largest Blob = %3f degrees  Distance = %d(%d mm) size = %d\n", GetAngleToBlob(largestBlob)* 57.2958F, GetDistanceToBlobCenter(largestBlob), GetRealDistanceToBlobCenter(largestBlob), GetBlobSize(largestBlob));
+	printf("Angle to largest Blob = %3f (%3f) degrees  Distance = %d(%d mm) size = %d\n", GetAngleToBlob(largestBlob) * 57.2958F, GetRealAngleToBlob(largestBlob) * 57.2958F, GetDistanceToBlobCenter(largestBlob), GetRealDistanceToBlobCenter(largestBlob), GetBlobSize(largestBlob));
 }
 
 uint16_t GetBlobCount()
@@ -189,9 +189,27 @@ float GetAngleToBlob(int8_t blob)
 	float a = (float)centerY / (float)(centerX-90);
 	a = (float)atan(a);
 	return a;
-
-
 }
+
+// get angle to blob in radians
+float GetRealAngleToBlob(int8_t blob)
+{
+	int16_t centerX, centerY;
+
+	if ((yPerRow != 0) && (xPerColumn != 0))
+	{
+
+		// Compute Center of Blob
+		GetBlobCenter(blob, &centerX, &centerY);
+
+		float a = (float)(centerY*yPerRow) / (float)((centerX - 90) * xPerColumn);
+		a = (float)atan(a);
+		return a;
+	}
+	else
+		return GetAngleToBlob(blob);
+}
+
 
 uint32_t GetBlobSize(uint8_t blob)
 {

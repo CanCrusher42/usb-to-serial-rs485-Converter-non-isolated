@@ -14,7 +14,7 @@
 
 #include "serial.h"
 
-#define TEST_SERIAL
+
 
 
 
@@ -29,9 +29,9 @@ int16_t maxTextBufferIndex = 0;
 bool testEmpty = false;
 #endif
 
-#if defined(_WIN32)
-HANDLE hComm;
-#else
+#ifndef _WIN32
+
+
 #include "../mcc_generated_files/uart2.h"
 
 
@@ -71,7 +71,7 @@ int lidarClear_serial()
 #endif
 
 #if defined (_WIN32)
-
+HANDLE hComm;
 bool OpenLpLidar(/*HANDLE hComm*/)
 {
 	//	HANDLE hComm;                          // Handle to the Serial port

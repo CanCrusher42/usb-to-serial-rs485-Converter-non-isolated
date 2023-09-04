@@ -42,9 +42,6 @@ void DisplayLineDistance(  uint16_t startAngle, uint16_t endAngle, uint8_t minQu
 				displayLine[cols - startAngle] = barChar;
 			else
 				displayLine[cols - startAngle] = ' ';
-
-//			if ((rows == 1) && (sampleLine[cols].quality < 3))
-//				displayLine[cols - startAngle] = '?';
 		}
 
 		// dispay left hand scale
@@ -95,40 +92,6 @@ void DisplayLineDistance(  uint16_t startAngle, uint16_t endAngle, uint8_t minQu
 }
 
 
-void printBottomScale(int startAngle, int endAngle, int pads)
-{
-	char displayLine[200] = { 0 };
-	// Display bottom scale
-	for (int loc = 2; loc >= 0; loc--)
-	{
-		unsigned int power = 0;
-		if (loc == 2) power = 100;
-		if (loc == 1) power = 10;
-
-		for (uint16_t cols = startAngle; cols < endAngle; cols++)
-		{
-			if (cols >= power)
-				if (power == 100)
-				{
-					displayLine[cols] = '0' + ((cols / power));
-				}
-				else if (power == 10)
-				{
-					displayLine[cols] = '0' + ((cols / power) % power);
-				}
-				else
-				{
-					displayLine[cols] = '0' + (cols % 10);
-				}
-			else
-				displayLine[cols] = '0';
-		}
-		displayLine[endAngle] = 0;
-		for (int i = 0; i < pads; i++) printf(" ");
-		printf("      %s\n", displayLine);
-
-	}
-}
 //                        -8000        8000       200
 /*
 v = 12,345;
@@ -265,7 +228,6 @@ void ConvertDisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t mi
 	int minX = 1000, maxX = -1000;
 	int maxY = -1000;
 	int maxYcol = 0;
-//	uint16_t angleOffset = startAngle;
 
 	char displayLine[200];
 	float ang;
@@ -321,12 +283,6 @@ void ConvertDisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t mi
 	}
 
 	printf("xPerColum = %d, yPerRow = %d\n", xPerColumn, yPerRow);
-	// Force Them
-
-// Harcoded for a specific test case
-//	xPerColumn = 86;
-//	yPerRow = 290;
-//	absBounds = xPerColumn * 90;
 
 	int divX, divY;
 	int colStart = xPerColumn * (-90);
