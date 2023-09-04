@@ -82,7 +82,7 @@
 
 HANDLE hComm;
 
-#define LPLIBRARY
+//#define LPLIBRARY
 
 
 
@@ -1189,7 +1189,8 @@ void main(void)
 			enum eSCAN_MODES scanMode = EXPRESS_SCAN; // { BASIC_SCAN = 0x20, EXPRESS_SCAN = 0x82 };
 			//Status = OpenLpLidar();
 			Status = rb_begin();
-			testExpressScanMode();
+			//testExpressScanMode();
+			testExpressScanModeRTOS();
 #ifdef DO_BASIC
 			int samples = 2600;
 			scanMode = BASIC_SCAN;

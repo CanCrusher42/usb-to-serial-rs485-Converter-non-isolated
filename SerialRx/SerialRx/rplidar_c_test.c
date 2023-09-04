@@ -118,7 +118,7 @@ bool testExpressScanModeRTOS()
 
 	int startTime, endTime;
 
-	while (screens < 200)
+	while (screens < 800)
 	{
 
 		startTime = GetTickCount();
@@ -126,7 +126,7 @@ bool testExpressScanModeRTOS()
 		scans = 0;
 		uint16_t goodSamples = 0;
 		uint16_t count = 0;
-		while (goodSamples < 100)
+		while (goodSamples < 130)
 		{
 			count = 0;
 			result = loopScanExpressAddDataRTOS(start, &count,0);
@@ -137,7 +137,7 @@ bool testExpressScanModeRTOS()
 		endTime = GetTickCount();
 
 		system("cls");
-		ConvertDisplayLineToRoom(0, 180, 20, 50, 0, 0);
+		ConvertDisplayLineToRoom(0, 180, 20, 50, 86, 190);
 
 
 		lidarClear_serial();
