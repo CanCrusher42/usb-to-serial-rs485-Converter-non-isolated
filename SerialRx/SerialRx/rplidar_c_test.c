@@ -431,7 +431,9 @@ bool testGetLineOfDataNormal()
 	while (testBufferIndex < maxTextBufferIndex)
 	{
 		uint16_t count = 0;
-		result = loopScanExpressAddDataRTOS(start, &count, 0);
+		//result = loopScanExpressAddDataRTOS(start, &count, 0);
+		result = loopScanExpressAddDataRTOS2(start, &count, 0);
+		
 		goodSamples += count;
 		start = false;
 
