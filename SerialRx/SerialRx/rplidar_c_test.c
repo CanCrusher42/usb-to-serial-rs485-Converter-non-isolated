@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include "serial.h"
 
+#include "scan_display.h"
+
 #define TEST_SERIAL
 
 
@@ -18,8 +20,7 @@ int GetTickCount();
 int millis() { return (20); }
 bool OpenLpLidar();
 extern rplidar_response_measurement_node_t finalLineData[1 * 180];
-void ConvertDisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t minQuality, uint16_t maxHeight);
-void DisplayLineDistance(uint16_t startAngle, uint16_t endAngle, uint8_t minQuality, uint16_t maxHeight);
+
 
 bool testBasicCommandHealth()
 {
@@ -96,7 +97,7 @@ bool testExpressScanMode()
 		system("cls");
 		//DisplayLineDistance(0, 180, 20, 50);
 		//DisplayLineAngle(0, 180, 20, 50);
-		ConvertDisplayLineToRoom(0, 180, 20, 50);
+		ConvertDisplayLineToRoom(0, 180, 20, 50, 0 , 0);
 		
 
 		lidarClear_serial();
@@ -411,7 +412,7 @@ bool testGetLineOfDataNormal()
 								*/
 								};
 
-
+	int16_t rotate_correction = 10;
 	uint16_t size = sizeof(data1);
 
 	for (int i = 0; i < size; i++)
@@ -431,7 +432,7 @@ bool testGetLineOfDataNormal()
 	while (testBufferIndex < maxTextBufferIndex)
 	{
 		uint16_t count = 0;
-		result = loopScanExpressAddDataRTOS(start, &count, 0);
+		result = loopScanExpressAddDataRTOS(start, &count, rotate_correction);
 		goodSamples += count;
 		start = false;
 
@@ -444,8 +445,8 @@ bool testGetLineOfDataNormal()
 //	}
 	//xPerColumn = 86;
 	//yPerRow = 290;
-	ConvertDisplayLineToRoom(0, 180, 4, 40);
-	CreateBlobsFromFinalLineData(86, 290);
+	ConvertDisplayLineToRoom(0, 180, 4, 40, 86, 190);
+	CreateBlobsFromFinalLineData(86, 190);
 	PrintBlobList();
 
 	return true;

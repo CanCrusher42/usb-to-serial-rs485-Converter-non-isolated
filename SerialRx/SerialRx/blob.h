@@ -28,6 +28,7 @@ uint16_t GetBlobCount();
 float    GetAngleToBlob(int8_t blob);
 uint32_t GetBlobSize(uint8_t blob);
 uint16_t GetDistanceToBlobCenter(uint8_t blob);
+uint16_t GetRealDistanceToBlobCenter(uint8_t blob);
 void     GetBlobCenter(uint8_t blob, int16_t* x, int16_t* y);
 uint8_t  GetLargestBlob();
 void     GetLargestBlobData(float* angle, uint16_t* distance);

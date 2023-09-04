@@ -11,7 +11,7 @@
 
 #include "blob.h"
 
-
+extern     int16_t yPerRow, xPerColumn, absBounds;
 //Y starts high and goes downward to 0
 //X starts neg at left and goes uppward to right.
 
@@ -44,20 +44,17 @@ void ClearFinalLineData()
 
 void PrintBlobList()
 {
-	printf("B - ULx , ULy    LRx , LRy  Size\n");
+	printf("B -  ULx ,         ULy   LRx ,       LRy  Size\n");
 	for (uint8_t i = 0; i < BLOBS_IN_LIST; i++)
 	{
 
 		if (blobList[i].numSamples > 0)
 		{
-			printf("%d - %3d , %3d    %3d , %3d  %4d \n", i, blobList[i].xLeft, blobList[i].yUpper, blobList[i].xRight, blobList[i].yLower, GetBlobSize(i));
+			printf("%d - %3d(%3d) ,   %3d   %3d(%3d) ,    %3d  %4d \n", i, blobList[i].xLeft, blobList[i].xLeft-90, blobList[i].yUpper, blobList[i].xRight, blobList[i].xRight-90,  blobList[i].yLower, GetBlobSize(i));
 		}
 	}
 	uint8_t largestBlob = GetLargestBlob();
-	printf("Angle to largest Blob = %3f degrees  Distance = %d size = %d\n", GetAngleToBlob(largestBlob)* 57.2958F, GetDistanceToBlobCenter(largestBlob), GetBlobSize(largestBlob));
-
-
-
+	printf("Angle to largest Blob = %3f degrees  Distance = %d(%d mm) size = %d\n", GetAngleToBlob(largestBlob)* 57.2958F, GetDistanceToBlobCenter(largestBlob), GetRealDistanceToBlobCenter(largestBlob), GetBlobSize(largestBlob));
 }
 
 uint16_t GetBlobCount()
@@ -77,8 +74,8 @@ bool IsPointInBlob(uint8_t blobNumber, int8_t x, int8_t y)
 		(y >= (blobList[blobNumber].yLower - 1)) && (y <= (blobList[blobNumber].yUpper + 1)))
 		return true;
 	return false;
-
 }
+
 int8_t addPointToBlobList(int8_t x, int8_t y)
 {
 	bool found = false;
@@ -163,6 +160,24 @@ void MergeSecondBlobIntoFirst(uint8_t firstBlob, uint8_t secondBlob)
 	 int16_t distance = (int16_t)round(sqrt(x * x + y * y));
 	 return distance;
  }
+ //yPerRow, xPerColumn
+ uint16_t GetRealDistanceToBlobCenter(uint8_t blob)
+ {
+	 int16_t x = 0, y = 0;
+	 int16_t distance;
+	 GetBlobCenter(blob, &x, &y);
+	 if ((yPerRow != 0) && (xPerColumn != 0))
+	 {
+		 int32_t x1 = ((uint32_t)(x-90) * (uint32_t)xPerColumn);
+		 int32_t y1 = ((uint32_t)y * (uint32_t)yPerRow);
+		 distance = (int16_t)round(sqrt(x1 * x1 + y1 * y1));
+	 }
+	 else
+	 {
+		 distance = GetDistanceToBlobCenter(blob);
+	 }
+	 return distance;
+ }
 
  // get angle to blob in radians
 float GetAngleToBlob(int8_t blob)
@@ -171,7 +186,7 @@ float GetAngleToBlob(int8_t blob)
 
 	// Compute Center of Blob
 	GetBlobCenter(blob, &centerX, &centerY);
-	float a = (float)centerY / (float)centerX;
+	float a = (float)centerY / (float)(centerX-90);
 	a = (float)atan(a);
 	return a;
 
@@ -262,7 +277,9 @@ int CreateBlobsFromFinalLineData(uint16_t xPerColumn, uint16_t yPerRow)
 			if (divY == row)
 			{
 				if ((divX < 0) || (divX > 180))
-					printf("ERROR Bad DIV X %d\n\n\n\n", divX);
+				{
+					//printf("ERROR Bad DIV X %d\n\n\n\n", divX);
+				}
 				else
 				{
 					if (finalLineData[col].sync_quality != 0)

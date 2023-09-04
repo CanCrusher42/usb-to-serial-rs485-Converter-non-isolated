@@ -139,6 +139,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="blob.h" />
+    <ClInclude Include="Header.h" />
     <ClInclude Include="inc\lp_defines.h" />
     <ClInclude Include="inc\rplidar_driver_impl.h" />
     <ClInclude Include="inc\rplidar_cmd.h" />

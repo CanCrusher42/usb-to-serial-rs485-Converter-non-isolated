@@ -10,6 +10,8 @@
 
 extern int maxValue ;
 extern rplidar_response_measurement_node_t finalLineData[SAMPLES_PER_DEGREE * 180];
+int16_t yPerRow, xPerColumn, absBounds;
+
 
 void DisplayLineDistance(  uint16_t startAngle, uint16_t endAngle, uint8_t minQuality, uint16_t maxHeight)
 {
@@ -251,7 +253,8 @@ void DisplayLineAngle(uint16_t startAngle, uint16_t endAngle, uint8_t minQuality
 }
 
 
-void ConvertDisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t minQuality, uint16_t maxHeight)
+
+void ConvertDisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t minQuality, uint16_t maxHeight, uint16_t x_scale, uint16_t y_scale)
 {
 	// Middle Angle = startAngle+90;
 	// Get Max Neg and Pos X
@@ -263,7 +266,7 @@ void ConvertDisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t mi
 	int maxY = -1000;
 	int maxYcol = 0;
 //	uint16_t angleOffset = startAngle;
-	int yPerRow, xPerColumn;
+
 	char displayLine[200];
 	float ang;
 
@@ -299,11 +302,23 @@ void ConvertDisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t mi
 	}
 
 	printf("maxY = %d @ %d\n", maxY, maxYcol);
-	yPerRow = maxY / maxHeight;
+	if (y_scale == 0)
+		yPerRow = maxY / maxHeight;
+	else
+		yPerRow = y_scale;
 
-	int absBounds = max(abs(minX), abs(maxX));
-	// Need to force round up.
-	xPerColumn = ((absBounds * 2)+179) / 180; // 180 columns
+
+	if (x_scale == 0)
+	{
+		absBounds = max(abs(minX), abs(maxX));
+		// Need to force round up.
+		xPerColumn = ((absBounds * 2) + 179) / 180; // 180 columns
+	}
+	else
+	{
+		xPerColumn = x_scale;
+		absBounds = xPerColumn * 90;
+	}
 
 	printf("xPerColum = %d, yPerRow = %d\n", xPerColumn, yPerRow);
 	// Force Them
@@ -329,7 +344,11 @@ void ConvertDisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t mi
 			if (divY == row)
 			{
 				if ((divX < 0) || (divX > 180))
-					printf("ERROR %d\n\n\n\n", divX);
+				{
+
+					// This can be called if we force a scale that is smaller than the screen.
+					//printf("ERROR %d\n\n\n\n", divX);
+				}
 				else
 				{
 					if (finalLineData[col].sync_quality != 0)
@@ -358,5 +377,6 @@ void ConvertDisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t mi
 	int16_t distance = 0;
 	GetLargestBlobData(&angle1, &distance);
 	printf("Blob Angle = %3.0f  Blob Distance = %4d\n", angle1 * 57.3, distance);
+	PrintBlobList();
 }
 

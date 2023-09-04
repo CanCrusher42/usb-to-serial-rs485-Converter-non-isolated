@@ -325,7 +325,7 @@ rplidar_response_capsule_measurement_nodes_t gCapsule_node;
 // 2)  Convert raw capsule data to an array of 32 data points   nodes[]
 // 3)  Scan each of the 33 nodes to check for valid data & non-duplicate data.  If so, Calculate cartisian coordiates and use this to determine if its in the active box. Increment sample count.
 // 
-u_result loopScanExpressAddDataRTOS(bool start, uint16_t *sampleCount, uint16_t rotate)
+u_result loopScanExpressAddDataRTOS(bool start, uint16_t *sampleCount, int16_t rotate)
 {
     //    static uint16_t recvNodeCount = 0;
     u_result ans;
@@ -355,9 +355,7 @@ u_result loopScanExpressAddDataRTOS(bool start, uint16_t *sampleCount, uint16_t 
         // If this sample > 0 and there is no previous sample at this location, then add it.
         if ((nodes[pos].distance_q2 > 0) && (finalLineData[nodes[pos].angle_q6_checkbit >> 6].distance_q2 == 0))
         {
-
-#ifndef ROTATE_DATA
-            int angle = nodes[pos].angle_q6_checkbit >> 6;
+            int16_t angle = nodes[pos].angle_q6_checkbit >> 6;
             if (angle < 180)
             {
                 finalLineData[angle].distance_q2 = nodes[pos].distance_q2;
@@ -365,8 +363,8 @@ u_result loopScanExpressAddDataRTOS(bool start, uint16_t *sampleCount, uint16_t 
                 ang = (float)(finalLineData[angle].angle_q6_checkbit >> 6);
                 ang = ang * (float)0.0174533;
                 // If this box is in the active area mark it.
-                x = (int)trunc(-1.0 * cos(ang) * (float)(finalLineData[angle].distance_q2 >> 2));
-                y = (int)trunc(sin(ang) * (float)(finalLineData[angle].distance_q2 >> 2));
+                x = (int16_t)trunc(-1.0 * cos(ang) * (float)(finalLineData[angle].distance_q2 >> 2));
+                y = (int16_t)trunc(sin(ang) * (float)(finalLineData[angle].distance_q2 >> 2));
 
                 if ((insideX_left < x) && (x < insideX_right) && (y < inside_up))
                 {
@@ -374,39 +372,6 @@ u_result loopScanExpressAddDataRTOS(bool start, uint16_t *sampleCount, uint16_t 
                 }
                 *sampleCount = *sampleCount+1;
             }
-#else
-            // WE NEED TO ROTATE 270-90 to 0 - 180 (Rotate clockwise 90)
-            // add 90 to value
-            // do modulus 360 to get remainder
-            // (280 + 90) = 370
-            // 370 % 360 = 10
-            // (10+90) = 100
-            // 100 % 360 = 100
-
-            int16_t angle = ( (nodes[pos].angle_q6_checkbit & 0x7FFF) + (((uint16_t) 90) << 6)) >> 6;
-            angle = ang % 360;
-            if (angle < 180)
-            {
-                finalLineData[angle].distance_q2 = nodes[pos].distance_q2;
-                finalLineData[angle].angle_q6_checkbit = nodes[pos].angle_q6_checkbit;
-                ang = (float)angle;
-                //ang = (float)(finalLineData[angle].angle_q6_checkbit >> 6);
-                ang = ang * (float)0.0174533;
-                // If this box is in the active area mark it.
-                x = (int)trunc(-1.0 * cos(ang) * (float)(finalLineData[angle].distance_q2 >> 2));
-                y = (int)trunc(sin(ang) * (float)(finalLineData[angle].distance_q2 >> 2));
-
-                if ((insideX_left < x) && (x < insideX_right) && (y < inside_up))
-                {
-                    finalLineData[angle].sync_quality = 1;
-                }
-                *sampleCount = *sampleCount + 1;
-            }
-
-
-#endif
-
-
         }
     }
 
@@ -613,7 +578,7 @@ int _getSyncBitByAngle(const int current_angle_q16, const int angleInc_q16)
 */
 
 // 
-void _capsuleToNormal16(rplidar_response_capsule_measurement_nodes_t* capsule, rplidar_response_measurement_node_t* nodebuffer, size_t* nodeCount, uint16_t rotate)
+void _capsuleToNormal16(rplidar_response_capsule_measurement_nodes_t* capsule, rplidar_response_measurement_node_t* nodebuffer, size_t* nodeCount, int16_t rotate)
 {
     *nodeCount = 0;
     
@@ -629,7 +594,10 @@ void _capsuleToNormal16(rplidar_response_capsule_measurement_nodes_t* capsule, r
         uint16_t testAngle = capsule->start_angle_sync_q6 >> 6;
         if (rotate)
         {
-            currentStartAngle_q6 = ((capsule->start_angle_sync_q6 & 0x7FFF) + (rotate << 6)) % (((uint16_t)360) << 6);
+            if (rotate>0)
+                currentStartAngle_q6 = ((capsule->start_angle_sync_q6 & 0x7FFF) + (rotate << 6)) % (((uint16_t)360) << 6);
+            else
+                currentStartAngle_q6 = ((capsule->start_angle_sync_q6 & 0x7FFF) - ((rotate*-1) << 6)) % (((uint16_t)360) << 6);
         }
         else
         {

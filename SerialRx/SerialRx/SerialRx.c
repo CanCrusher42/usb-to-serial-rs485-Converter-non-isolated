@@ -101,7 +101,7 @@ char  SerialBuffer[SERIAL_BUFFER_SIZE];               // Buffer Containing Rxed 
 struct sample_struct lineBuffer[LINE_BUFFER_SIZE];
 uint8_t scanMode = 0;
 enum eSCAN_MODES { BASIC_SCAN = 0x20, EXPRESS_SCAN = 0x82 };
-void ConvertDisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t minQuality, uint16_t maxHeight);
+//void ConvertDisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t minQuality, uint16_t maxHeight);
 
 
 #define LIDAR_STOP  0x25
