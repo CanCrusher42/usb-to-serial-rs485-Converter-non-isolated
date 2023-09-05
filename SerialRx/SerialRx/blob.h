@@ -27,7 +27,7 @@ int  CreateBlobsFromFinalLineData(uint16_t xPerColumn, uint16_t yPerRow);
 uint16_t GetBlobCount();
 float    GetAngleToBlob(int8_t blob);
 float    GetRealAngleToBlob(int8_t blob);
-uint32_t GetBlobSize(uint8_t blob);
+uint16_t GetBlobSize(uint8_t blob);
 uint16_t GetDistanceToBlobCenter(uint8_t blob);
 uint16_t GetRealDistanceToBlobCenter(uint8_t blob);
 void     GetBlobCenter(uint8_t blob, int16_t* x, int16_t* y);

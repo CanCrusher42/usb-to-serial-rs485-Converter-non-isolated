@@ -114,7 +114,7 @@ u_result _waitResponseHeader(rplidar_ans_header_t* header, _u32 timeout)
         }
     }
 
-    printf("waitReponseHeader timeout");
+    printf("waitReponseHeader timeout %ld\n",remainingtime);
 
     return RESULT_OPERATION_TIMEOUT;
 }
@@ -591,7 +591,7 @@ void _capsuleToNormal16(rplidar_response_capsule_measurement_nodes_t* capsule, r
 
         uint16_t prevStartAngle_q6 = ((_cached_previous_capsuledata.start_angle_sync_q6 & 0x7FFF));
 
-        uint16_t testAngle = capsule->start_angle_sync_q6 >> 6;
+//        uint16_t testAngle = capsule->start_angle_sync_q6 >> 6;
         if (rotate)
         {
             if (rotate>0)
@@ -604,7 +604,7 @@ void _capsuleToNormal16(rplidar_response_capsule_measurement_nodes_t* capsule, r
             currentStartAngle_q6 = ((capsule->start_angle_sync_q6 & 0x7FFF));
         }
 
-        uint16_t testAngle2 = currentStartAngle_q6 >> 6;
+//        uint16_t testAngle2 = currentStartAngle_q6 >> 6;
         diffAngle_q6 = currentStartAngle_q6-prevStartAngle_q6;
         if (prevStartAngle_q6 > currentStartAngle_q6) {
             diffAngle_q6 += (360 << 6);

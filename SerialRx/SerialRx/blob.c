@@ -211,9 +211,9 @@ float GetRealAngleToBlob(int8_t blob)
 }
 
 
-uint32_t GetBlobSize(uint8_t blob)
+uint16_t GetBlobSize(uint8_t blob)
 {
-	uint32_t tempSize = (blobList[blob].xRight - blobList[blob].xLeft) + 1;
+	uint16_t tempSize = (blobList[blob].xRight - blobList[blob].xLeft) + 1;
 	tempSize *= (blobList[blob].yUpper - blobList[blob].yLower + 1);
 	return tempSize;
 }
