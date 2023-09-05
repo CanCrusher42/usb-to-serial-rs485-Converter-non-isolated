@@ -584,27 +584,25 @@ void _capsuleToNormal16(rplidar_response_capsule_measurement_nodes_t* capsule, r
     
     //_is_previous_capsuledataRdy is updated at the end of this function.  
     // If we make it, it then means we have gotten the first packet of good data.
+
+
+    if (rotate)
+    {
+        uint16_t absRotate = 0;
+        if (rotate < 0)
+            absRotate = (-1 * rotate);
+        if (rotate >= 0)
+            capsule->start_angle_sync_q6 = ((capsule->start_angle_sync_q6 & 0x7FFF) + (rotate << 6)) % (((uint16_t)360) << 6);
+        else
+            capsule->start_angle_sync_q6 = ((capsule->start_angle_sync_q6 & 0x7FFF) - (absRotate << 6)) % (((uint16_t)360) << 6);
+    }
+    
+
     if (_is_previous_capsuledataRdy) {
         uint16_t diffAngle_q6;
-//        int16_t currentStartAngle_q6 = ((capsule->start_angle_sync_q6 & 0x7FFF));
-        uint16_t currentStartAngle_q6 ;
+        uint16_t currentStartAngle_q6 = ((capsule->start_angle_sync_q6 & 0x7FFF));
+        uint16_t prevStartAngle_q6    = ((_cached_previous_capsuledata.start_angle_sync_q6 & 0x7FFF));
 
-        uint16_t prevStartAngle_q6 = ((_cached_previous_capsuledata.start_angle_sync_q6 & 0x7FFF));
-
-        uint16_t testAngle = capsule->start_angle_sync_q6 >> 6;
-        if (rotate)
-        {
-            if (rotate>0)
-                currentStartAngle_q6 = ((capsule->start_angle_sync_q6 & 0x7FFF) + (rotate << 6)) % (((uint16_t)360) << 6);
-            else
-                currentStartAngle_q6 = ((capsule->start_angle_sync_q6 & 0x7FFF) - ((rotate*-1) << 6)) % (((uint16_t)360) << 6);
-        }
-        else
-        {
-            currentStartAngle_q6 = ((capsule->start_angle_sync_q6 & 0x7FFF));
-        }
-
-        uint16_t testAngle2 = currentStartAngle_q6 >> 6;
         diffAngle_q6 = currentStartAngle_q6-prevStartAngle_q6;
         if (prevStartAngle_q6 > currentStartAngle_q6) {
             diffAngle_q6 += (360 << 6);
@@ -650,10 +648,9 @@ void _capsuleToNormal16(rplidar_response_capsule_measurement_nodes_t* capsule, r
                 if (angle_q6[cpos] < 0) angle_q6[cpos] += (360 << 6);
                 if (angle_q6[cpos] >= (360 << 6)) angle_q6[cpos] -= (360 << 6);
 
-                //rplidar_response_measurement_node_hq_t node;
                 rplidar_response_measurement_node_t node;
                 node.angle_q6_checkbit = (_u16)(angle_q6[cpos]);
-                node.sync_quality = dist_q2[cpos] ? (0x2f << RPLIDAR_RESP_MEASUREMENT_QUALITY_SHIFT) : 0;
+                node.sync_quality = 0;
                 node.distance_q2 = dist_q2[cpos];
 
                 nodebuffer[*nodeCount] = node;

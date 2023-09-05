@@ -1237,10 +1237,8 @@ void main(void)
 			_getch();
 			} // end of main
 #else
-
-
-
-void main()
+ 
+main()
 {
 	
 	//bool runAllTests();
