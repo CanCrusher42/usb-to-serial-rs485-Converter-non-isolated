@@ -10,7 +10,9 @@
 #include "inc/rplidar_driver_impl.h"
 #include "inc/lp_defines.h"
 #include "serial.h"
-
+#ifdef __XC16__
+#include "../mcc_generated_files/pin_manager.h"
+#endif
 #include <math.h>
 
 
@@ -33,12 +35,16 @@ bool     _isTofLidar;
 _u8                     _cached_express_flag;
 
 rplidar_response_capsule_measurement_nodes_t _cached_previous_capsuledata;
+rplidar_response_capsule_measurement_nodes_t currentCapsuleNode;
+
 bool                                         _is_previous_capsuledataRdy;
-bool                                         _is_previous_HqdataRdy;
 bool                                         _syncBit_is_finded;
 
-rplidar_response_measurement_node_t finalLineData[SAMPLES_PER_DEGREE * 180];
 
+rplidar_response_capsule_measurement_nodes_t currentCapsuleNode;
+
+//rplidar_response_measurement_node_t finalLineData[SAMPLES_PER_DEGREE * 180];
+rplidar_response_measurement_node_xy_t finalLineData[SAMPLES_PER_DEGREE * 180];
 uint16_t _magValue[180 * 2];
 uint16_t _angValue[180 * 2];
 uint16_t scans = 0;
@@ -48,7 +54,11 @@ uint16_t scans = 0;
 
 bool rb_begin()
 {
-    printf("\nOPEN\n");
+#ifdef __XC16__
+    printf("\nOPEN Setting IO_RC8 High\n");
+    IO_RC8_SetDigitalOutput() ;
+    IO_RC8_SetHigh();
+#endif
     _isConnected = OpenLpLidar();
     uint32_t startTime = GetTickCount();
     while ((GetTickCount() - startTime) < 100);
@@ -114,7 +124,7 @@ u_result _waitResponseHeader(rplidar_ans_header_t* header, _u32 timeout)
         }
     }
 
-    printf("waitReponseHeader timeout");
+    printf("waitReponseHeader timeout %ld\n",remainingtime);
 
     return RESULT_OPERATION_TIMEOUT;
 }
@@ -243,6 +253,7 @@ u_result _waitCapsuledNodeRTOS(rplidar_response_capsule_measurement_nodes_t* nod
 	while (1)
 	{
 		currentbyte = lidarSerial_read();
+        
 		if (currentbyte < 0)
 			return RESULT_WAITING;
 
@@ -258,10 +269,11 @@ u_result _waitCapsuledNodeRTOS(rplidar_response_capsule_measurement_nodes_t* nod
 			}
 			else {
                 // Something happened to data stream, resync state machines.
-                recvPos = 0;
 				_is_previous_capsuledataRdy = false;
 				result = RESULT_WAITING;
+                recvPos = 0;
 			}
+
 		}
 		break;
 		case 1: // expect the sync bit 2
@@ -272,9 +284,9 @@ u_result _waitCapsuledNodeRTOS(rplidar_response_capsule_measurement_nodes_t* nod
 			}
 			else {
                 // Something happened to data stream, resync state machines.
-				recvPos = 0;
 				_is_previous_capsuledataRdy = false;
 				result = RESULT_WAITING;
+                recvPos = 0;
 			}
 		}
 		break;
@@ -315,13 +327,11 @@ u_result _waitCapsuledNodeRTOS(rplidar_response_capsule_measurement_nodes_t* nod
 	return RESULT_WAITING;
 }
 
-#pragma message("Move this to correct location")
-rplidar_response_capsule_measurement_nodes_t gCapsule_node;
 
 
 // Get Capsule data if needed and return the number added.
 
-// 1)  Check to see if there is a valid capsule of data availible. - Capsule will be stored in gCapsule_node
+// 1)  Check to see if there is a valid capsule of data availible. - Capsule will be stored in currentCapsuleNode
 // 2)  Convert raw capsule data to an array of 32 data points   nodes[]
 // 3)  Scan each of the 33 nodes to check for valid data & non-duplicate data.  If so, Calculate cartisian coordiates and use this to determine if its in the active box. Increment sample count.
 // 
@@ -331,15 +341,13 @@ u_result loopScanExpressAddDataRTOS(bool start, uint16_t *sampleCount, int16_t r
     u_result ans;
 
     rplidar_response_measurement_node_t nodes[32];
-    int16_t x, y;
-
     float ang;
 
     *sampleCount = 0;
 
 
-    // Get new data and place it in gCapsule_node.  Notify when capsule is complete. 
-    if  ((ans = _waitCapsuledNodeRTOS( &gCapsule_node, start)) == RESULT_WAITING) {
+    // Get new data and place it in currentCapsuleNode.  Notify when capsule is complete. 
+    if  ((ans = _waitCapsuledNodeRTOS( &currentCapsuleNode, start)) == RESULT_WAITING) {
        // _isScanning = false;
         return RESULT_WAITING;
     }
@@ -347,7 +355,7 @@ u_result loopScanExpressAddDataRTOS(bool start, uint16_t *sampleCount, int16_t r
     size_t count = 0;
 
     // Convert Capsule to line format IFF gCapsuleNode is valid and there is a previous cacheline
-    _capsuleToNormal16(&gCapsule_node, nodes, &count,rotate);
+    _capsuleToNormal16(&currentCapsuleNode, nodes, &count,rotate);
 
     // If there is not a previous cacheline count will equal 0.
     for (size_t pos = 0; pos < count; ++pos) 
@@ -363,10 +371,9 @@ u_result loopScanExpressAddDataRTOS(bool start, uint16_t *sampleCount, int16_t r
                 ang = (float)(finalLineData[angle].angle_q6_checkbit >> 6);
                 ang = ang * (float)0.0174533;
                 // If this box is in the active area mark it.
-                x = (int16_t)trunc(-1.0 * cos(ang) * (float)(finalLineData[angle].distance_q2 >> 2));
-                y = (int16_t)trunc(sin(ang) * (float)(finalLineData[angle].distance_q2 >> 2));
-
-                if ((insideX_left < x) && (x < insideX_right) && (y < inside_up))
+                finalLineData[angle].x = (int16_t)trunc(-1.0 * cos(ang) * (float)(finalLineData[angle].distance_q2 >> 2));
+                finalLineData[angle].y = (int16_t)trunc(sin(ang) * (float)(finalLineData[angle].distance_q2 >> 2));
+                if ((insideX_left < finalLineData[angle].x) && (finalLineData[angle].x < insideX_right) && (finalLineData[angle].y < inside_up))
                 {
                     finalLineData[angle].sync_quality = 1;
                 }
@@ -459,7 +466,7 @@ u_result _waitCapsuledNode(rplidar_response_capsule_measurement_nodes_t *node, _
 
 // grab some express data and put it in the global structs _cached_scan_node_hq_buf
 // Inside box.
-
+#ifndef __XC16__
 u_result loopScanExpressData6()
 {
 //    static uint16_t recvNodeCount = 0;
@@ -505,6 +512,7 @@ u_result loopScanExpressData6()
     }
     return RESULT_OK;
 }
+#endif
 
 u_result startScanNormal(bool force, _u32 timeout)
 {
@@ -544,38 +552,6 @@ u_result startScanNormal(bool force, _u32 timeout)
     return RESULT_OK;
 }
 
-// TODO not implemented
-/*
-int _getSyncBitByAngle(const int current_angle_q16, const int angleInc_q16)
-{
-    static int last_angleInc_q16 = 0;
-    int current_angleInc_q16 = angleInc_q16;
-    int syncBit_check_threshold = (int)((5 << 16) / angleInc_q16) + 1;//find syncBit in 0~3 degree
-    int syncBit = 0;
-    int predict_angle_q16 = (current_angle_q16 + angleInc_q16) % (360 << 16);
-
-    if (predict_angle_q16 < 0) {
-        predict_angle_q16 += (360 << 16);
-    }
-    if (!_syncBit_is_finded)
-    {
-        if (0 < predict_angle_q16 && predict_angle_q16 < (90 << 16))
-            syncBit = 1;
-        if (syncBit)
-            _syncBit_is_finded = true;
-    }
-    else
-    {
-        if (predict_angle_q16 > (270 << 16))
-            _syncBit_is_finded = false;
-        //if (predict_angle_q16 > (syncBit_check_threshold * angleInc_q16)) {
-        //    _is_previous_syncBit = false;
-        //}
-    }
-    last_angleInc_q16 = current_angleInc_q16;
-    return syncBit;
-}
-*/
 
 // 
 void _capsuleToNormal16(rplidar_response_capsule_measurement_nodes_t* capsule, rplidar_response_measurement_node_t* nodebuffer, size_t* nodeCount, int16_t rotate)
@@ -804,6 +780,8 @@ u_result stop(_u32 timeout)
         if (IS_FAIL(ans = _sendCommand(RPLIDAR_CMD_STOP,NULL, 0))) {
             return ans;
         }
+        uint32_t sTime = GetTickCount();
+        while ((GetTickCount()-sTime)<5) {};
         lidarClear_serial();
 
     }

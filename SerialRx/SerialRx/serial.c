@@ -22,6 +22,9 @@
 
 
 bool serialTestMode = false;
+#ifdef __XC16__
+extern volatile bool rx2Overflowed;
+#endif
 #ifdef TEST_SERIAL
 int testBuffer[12800];
 int16_t testBufferIndex = 0;
@@ -51,7 +54,13 @@ void lidarSerial_write(uint8_t* header, uint16_t length)
 
 int16_t lidarSerial_read()
 {
-
+#ifdef __XC16__
+    if (rx2Overflowed == true)
+    {
+        printf("UART2 OVERFLOW\n");
+        UART2_Purge();
+    }
+#endif
     if (UART2_IsRxReady()== false)
 	{
 	  	return -1;

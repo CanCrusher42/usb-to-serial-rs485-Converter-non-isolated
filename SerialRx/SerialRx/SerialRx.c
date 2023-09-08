@@ -83,7 +83,7 @@
 HANDLE hComm;
 
 //#define LPLIBRARY
-
+bool rb_begin();
 
 
 #ifndef LPLIBRARY
@@ -185,8 +185,8 @@ void DisplayLineToRoom2(struct sample_struct sampleLine[LINE_BUFFER_SIZE], int n
 	for (uint16_t angle = startAngle; angle < (startAngle + 180); angle++)
 	{
 		
-		xValue[angle-startAngle] = round((-1.0 * cos((angle - angleOffset)* 0.0174533)) * (float)sampleLine[angle].distance);
-		yValue[angle - startAngle] = round((sin((angle - angleOffset) * 0.0174533)) * (float)sampleLine[angle].distance);
+		xValue[angle-startAngle] = (int)round((-1.0 * cos((angle - angleOffset)* 0.0174533)) * (float)sampleLine[angle].distance);
+		yValue[angle - startAngle] = (int)round((sin((angle - angleOffset) * 0.0174533)) * (float)sampleLine[angle].distance);
 
 		if (xValue[angle - startAngle] < minX)
 			minX = xValue[angle - startAngle];
@@ -439,7 +439,7 @@ int TransferExpressGroupToLine(uint8_t rawBuffer[], struct sample_struct* lineBu
 	uint16_t startAngleQ6w0, startAngleQ6w1;
 	int cabin;
 	int angleDiff;
-	int index;
+	//int index;
 	uint8_t *cabinStart;
 	uint16_t dist1, dist2;
 	uint16_t ang1, ang2;
@@ -514,20 +514,6 @@ bool TransferExpressArrayToLine(uint8_t *SerialBuffer, struct sample_struct* lin
 
 
 extern uint8_t ExpressTestSample1[];
-
-bool TestTransferExpressGroupToLine()
-{
-
-	//struct sample_struct lineBuffer[LINE_BUFFER_SIZE];
-	
-	TransferExpressGroupToLine(ExpressTestSample1, lineBuffer);
-}
-
-
-
-
-
-
 
 
 bool OpenLpLidar2(/*HANDLE hComm*/)
@@ -1178,7 +1164,8 @@ int getRawExpressScanLineOfData(HANDLE hComm, int numChars)
 
 #define DO_EPRESS
 //#define DO_BASIC 
-
+bool testExpressScanModeRTOS();
+void ConvertDisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t minQuality, uint16_t maxHeight, uint16_t x_scale, uint16_t y_scale);
 void main(void)
 		{
 			BOOL  Status;                          // Status of the various operations 
@@ -1231,7 +1218,7 @@ void main(void)
 //			DisplayLineDistance(lineBuffer, bytesInLine / 5, 0, 180, 80, 50);
 
 			printf("\n\n\n\n");
-			ConvertDisplayLineToRoom(/*lineBuffer, bytesInLine / 5,*/ 0, 180, 80, 50);
+			ConvertDisplayLineToRoom( 0, 180, 80, 50, 86, 190);
 			CloseHandle(hComm);//Closing the Serial Port
 			printf("\n +==========================================+\n");
 			_getch();

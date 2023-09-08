@@ -7,9 +7,11 @@
 #include "inc/rplidar_cmd.h"
 #include "string.h"
 #include "blob.h"
-
+#ifdef __XC16__
+#include "min_max.h"
+#endif
 extern int maxValue ;
-extern rplidar_response_measurement_node_t finalLineData[SAMPLES_PER_DEGREE * 180];
+extern rplidar_response_measurement_node_xy_t finalLineData[SAMPLES_PER_DEGREE * 180];
 int16_t yPerRow, xPerColumn, absBounds;
 
 
@@ -104,7 +106,7 @@ v /     1 = 12345 12345% 10   = 5
 void printBottomXScale(int startX, int endX, int xPerIndex, int pads )
 {
 	char displayLine[200] = { 0 };
-	int sizeX = 180;
+
 	// Display bottom scale
 	for (int loc = 5; loc >= 0; loc--)
 	{
@@ -135,88 +137,6 @@ void printBottomXScale(int startX, int endX, int xPerIndex, int pads )
 }
 
 
-void DisplayLineAngle(uint16_t startAngle, uint16_t endAngle, uint8_t minQuality, uint16_t maxHeight)
-{
-	char displayLine[365];
-	uint16_t width = (endAngle - startAngle) * SAMPLES_PER_DEGREE;
-
-	if (width > 360)
-		width = 360;
-	char barChar = '#';
-
-	// get tallest bar
-	uint16_t highest = 0;
-
-	// ERROR THIS SHOULD CHECK BE CHECKING BETWEEN THE TARGETS
-	for (uint16_t check = startAngle; check < endAngle; check++)
-	{
-		if (finalLineData[check].angle_q6_checkbit > highest)
-
-			highest = finalLineData[check].angle_q6_checkbit;
-	}
-
-	int scale = highest / maxHeight;
-	for (uint16_t rows = maxHeight; rows >= 1; rows--)
-	{
-		for (uint16_t cols = startAngle; cols < endAngle; cols++)
-		{
-			if (finalLineData[cols].angle_q6_checkbit >= (rows * scale))
-				displayLine[cols - startAngle] = barChar;
-			else
-				displayLine[cols - startAngle] = ' ';
-
-			//			if ((rows == 1) && (sampleLine[cols].quality < 3))
-			//				displayLine[cols - startAngle] = '?';
-		}
-
-		// dispay left hand scale
-		displayLine[width] = 0;
-		printf("%05d|", rows * scale);
-		printf("%s\n", displayLine);
-	}
-
-	printf("%s", "      ");
-	for (int loc = startAngle; loc < endAngle; loc++)
-		printf("%c", '-');
-
-	printf("\n");
-
-
-	// Display bottom scale
-	for (int loc = 2; loc >= 0; loc--)
-	{
-		unsigned int power = 0;
-		if (loc == 2) power = 100;
-		if (loc == 1) power = 10;
-
-		for (uint16_t cols = startAngle; cols < endAngle; cols++)
-		{
-			if (cols >= power)
-				if (power == 100)
-				{
-					displayLine[cols] = '0' + ((cols / power));
-				}
-				else if (power == 10)
-				{
-					displayLine[cols] = '0' + ((cols / power) % power);
-				}
-				else
-				{
-					displayLine[cols] = '0' + (cols % 10);
-				}
-			else
-				displayLine[cols] = '0';
-		}
-		displayLine[width] = 0;
-		printf("      %s\n", displayLine);
-
-	}
-
-
-}
-
-
-
 void ConvertDisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t minQuality, uint16_t maxHeight, uint16_t x_scale, uint16_t y_scale)
 {
 	// Middle Angle = startAngle+90;
@@ -228,7 +148,7 @@ void ConvertDisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t mi
 	int minX = 1000, maxX = -1000;
 	int maxY = -1000;
 	int maxYcol = 0;
-
+    uint16_t lastColumn = 0;
 	char displayLine[200];
 	float ang;
 
@@ -239,7 +159,7 @@ void ConvertDisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t mi
 		if ((finalLineData[angle].angle_q6_checkbit >> 6) != 0)
 		{
 			ang = (float)(finalLineData[angle].angle_q6_checkbit >> 6);
-			ang = ((float)(finalLineData[angle].angle_q6_checkbit)) / 64.0;
+			ang = ((float)(finalLineData[angle].angle_q6_checkbit)) / 64.0F;
 			fAngle[angle - startAngle] = ang;
 			ang =  ang * 0.0174533F;
 
@@ -290,9 +210,11 @@ void ConvertDisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t mi
 
 	// Now paint from the top row (Farthest away from the sensor first)
 	ClearBlobs();
+    
 	for (int row = maxHeight; row > 0; row--)
 	{
 		memset(displayLine, ' ', 195);
+        lastColumn = 0;
 		for (uint16_t col = 0; col < 180; col++)
 		{
 			divX = (xValue[col] - colStart) / xPerColumn;
@@ -301,7 +223,6 @@ void ConvertDisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t mi
 			{
 				if ((divX < 0) || (divX > 180))
 				{
-
 					// This can be called if we force a scale that is smaller than the screen.
 					//printf("ERROR %d\n\n\n\n", divX);
 				}
@@ -314,23 +235,25 @@ void ConvertDisplayLineToRoom(uint16_t startAngle, uint16_t endAngle, uint8_t mi
 					}
 					else
 						displayLine[divX] = '.';
+                    lastColumn = divX+1; 
 				}
-			}
+			} 
 		}
 		if (row < 3)
 		{
 			displayLine[89] = '#';
 			displayLine[90] = '#';
 			displayLine[91] = '#';
+            lastColumn = 92;
 		}
-		displayLine[180] = 0;
+		displayLine[lastColumn] = 0;
 		printf("%3d %05d|", row, row * yPerRow);
 		printf("        %s\n", displayLine);
 	}
 
 	printBottomXScale(-1 * absBounds, absBounds, 2 * absBounds / 180, 5);
 	float angle1 = 0.0;
-	int16_t distance = 0;
+	uint16_t distance = 0;
 	GetLargestBlobData(&angle1, &distance);
 	printf("Blob Angle = %3.0f  Blob Distance = %4d\n", angle1 * 57.3, distance);
 	PrintBlobList();

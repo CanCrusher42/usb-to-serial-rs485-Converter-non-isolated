@@ -13,9 +13,13 @@
 
 
 int GetTickCount();
+#ifndef __XC16__
 int millis() { return (20); }
+#else
+int millis();
+#endif
 bool OpenLpLidar();
-extern rplidar_response_measurement_node_t finalLineData[1 * 180];
+extern rplidar_response_measurement_node_xy_t finalLineData[1 * 180];
 
 
 bool testBasicCommandHealth()
@@ -89,8 +93,9 @@ bool testExpressScanMode()
 			//printf("_cached_scan_node_hq_count = %d\n", loopCount);
 		}
 		endTime = GetTickCount();
-
+#ifndef __XC16__
 		system("cls");
+#endif
 		ConvertDisplayLineToRoom(0, 180, 20, 50, 0 , 0);
 		
 
@@ -135,8 +140,9 @@ bool testExpressScanModeRTOS()
 		}
 
 		endTime = GetTickCount();
-
+#ifndef __XC16__
 		system("cls");
+#endif
 		ConvertDisplayLineToRoom(0, 180, 20, 50, 86, 190);
 
 

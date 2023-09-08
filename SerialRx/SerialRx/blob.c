@@ -8,14 +8,16 @@
 #include "inc/lp_defines.h"
 #include "inc/rplidar_cmd.h"
 #include "string.h"
-
+#ifdef __XC16__
+#include "min_max.h"
+#endif
 #include "blob.h"
 
 extern     int16_t yPerRow, xPerColumn, absBounds;
 //Y starts high and goes downward to 0
 //X starts neg at left and goes uppward to right.
 
-extern rplidar_response_measurement_node_t finalLineData[1 * 180];
+extern rplidar_response_measurement_node_xy_t finalLineData[1 * 180];
 
 
 blobStruct_t blobList[BLOBS_IN_LIST];
@@ -54,7 +56,7 @@ void PrintBlobList()
 		}
 	}
 	uint8_t largestBlob = GetLargestBlob();
-	printf("Angle to largest Blob = %3f (%3f) degrees  Distance = %d(%d mm) size = %d\n", GetAngleToBlob(largestBlob) * 57.2958F, GetRealAngleToBlob(largestBlob) * 57.2958F, GetDistanceToBlobCenter(largestBlob), GetRealDistanceToBlobCenter(largestBlob), GetBlobSize(largestBlob));
+	printf("Angle to largest Blob = %3f (%3f) degrees  Distance = %d(%d mm) size = %d\n", (double)(GetAngleToBlob(largestBlob) * 57.2958F), (double)(GetRealAngleToBlob(largestBlob) * 57.2958F), GetDistanceToBlobCenter(largestBlob), GetRealDistanceToBlobCenter(largestBlob), GetBlobSize(largestBlob));
 }
 
 uint16_t GetBlobCount()
@@ -211,9 +213,9 @@ float GetRealAngleToBlob(int8_t blob)
 }
 
 
-uint32_t GetBlobSize(uint8_t blob)
+uint16_t GetBlobSize(uint8_t blob)
 {
-	uint32_t tempSize = (blobList[blob].xRight - blobList[blob].xLeft) + 1;
+	uint16_t tempSize = (blobList[blob].xRight - blobList[blob].xLeft) + 1;
 	tempSize *= (blobList[blob].yUpper - blobList[blob].yLower + 1);
 	return tempSize;
 }
@@ -253,62 +255,39 @@ void GetLargestBlobData(float *angle, uint16_t *distance)
 #define NUM_ROWS  50
 // to calculate what xPerColumn should be, figure out the max x distance in one direction in mm.  Then devide this by (NUM_COLS/2)
 // to calculate what yPerRow should be, figure out the max Y distance in mm.  Then devide this by (NUM_ROWS/2)
+
 int CreateBlobsFromFinalLineData(uint16_t xPerColumn, uint16_t yPerRow)
 {
-	int16_t divX, divY;
-	int16_t xValue[182] = { 0 };
-	int16_t yValue[182] = { 0 };
-	int16_t minX = 1000;
+    int16_t divX;
+    uint16_t divY;
+    int16_t minX = 1000;
 
-	float ang;
+    minX = (NUM_COLS / -2) * xPerColumn;
 
-	minX = (NUM_COLS / -2) * xPerColumn;
+    ClearBlobs();
+    for (int16_t row = NUM_ROWS; row > 0; row--)
+    {
+        for (uint16_t col = 0; col < 180; col++)
+        {
+            // If its not in the blob area, ignore it.
+            if (finalLineData[col].sync_quality != 0)  
+            {
+                divY = (finalLineData[col].y / yPerRow);
+                if (divY == row)
+                {
+                    divX = (finalLineData[col].x - minX) / xPerColumn;
+                    if ((divX >= 0) && (divX <= 180))
+                    {
+                            addPointToBlobList((int8_t) divX, (int8_t) divY);
+                    } else
+                    {
+                        //printf("ERROR Bad DIV X %d\n\n\n\n", divX);
+                    }
 
-	// Compute cartisian values
-	for (uint16_t angle = 0; angle < 180; angle++)
-	{
-		if ((finalLineData[angle].angle_q6_checkbit >> 6) != 0)
-		{
-			ang = (float)(finalLineData[angle].angle_q6_checkbit >> 6);
-			ang = ang * 0.0174533F;
-			xValue[angle] = (int)trunc(-1.0 * cos(ang) * (float)(finalLineData[angle].distance_q2 >> 2));
-			yValue[angle] = (int)trunc(       sin(ang) * (float)(finalLineData[angle].distance_q2 >> 2));
-		}
-		else
-		{
-			xValue[angle] = 0;
-			yValue[angle] = 0;
-		}
+                }
+            }
+        }
+    }
 
-	}
-
-
-	
-	ClearBlobs();
-	for (int16_t row = NUM_ROWS; row > 0; row--)
-	{
-		for (uint16_t col = 0; col < 180; col++)
-		{
-			//divX = (xValue[col] - colStart) / xPerColumn;
-			divX = (xValue[col] - minX) / xPerColumn;
-			divY = (yValue[col] / yPerRow);
-			if (divY == row)
-			{
-				if ((divX < 0) || (divX > 180))
-				{
-					//printf("ERROR Bad DIV X %d\n\n\n\n", divX);
-				}
-				else
-				{
-					if (finalLineData[col].sync_quality != 0)
-					{
-						addPointToBlobList((int8_t)divX, (int8_t)divY);
-					}
-				}
-			}
-		}
-	}
-
-	return 0;
-
+    return 0;
 }

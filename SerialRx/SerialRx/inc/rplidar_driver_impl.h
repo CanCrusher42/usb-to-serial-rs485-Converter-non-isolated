@@ -36,6 +36,7 @@
 #ifndef RPLIDAR_DRIVER_H
 #define RPLIDAR_DRIVER_H
 #include <stdbool.h>
+#include <stddef.h>
 #include "rptypes.h"
 #include "rplidar_cmd.h"
 
