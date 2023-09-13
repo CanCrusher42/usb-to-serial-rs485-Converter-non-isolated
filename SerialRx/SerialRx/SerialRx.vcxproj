@@ -145,6 +145,7 @@
     <ClInclude Include="inc\rplidar_cmd.h" />
     <ClInclude Include="inc\rplidar_protocol.h" />
     <ClInclude Include="inc\rptypes.h" />
+    <ClInclude Include="lidar_conf.h" />
     <ClInclude Include="serial.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

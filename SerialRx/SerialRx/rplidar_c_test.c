@@ -1,11 +1,13 @@
+#include <stdbool.h>
+#include <string.h>
+#include <stdio.h>
+
 #include "inc/rptypes.h"
 #include "inc/rplidar_protocol.h"
 #include "inc/rplidar_cmd.h"
 #include "rplidar_driver_impl.h"
+#include "lidar_conf.h"
 
-#include <stdbool.h>
-#include <string.h>
-#include <stdio.h>
 #include "serial.h"
 
 #include "scan_display.h"
@@ -406,7 +408,7 @@ bool testGetLineOfDataRotate90()
 	}
 	//xPerColumn = 86;
 	//yPerRow = 290;
-	CreateBlobsFromFinalLineData(86, 290);
+	CreateBlobsFromFinalLineData(LIDAR_BLOB_ROW_RESOLUTION, LIDAR_BLOB_COLUMN_RESOLUTION);
 	PrintBlobList();
 
 	return true;
@@ -499,7 +501,8 @@ bool testGetLineOfDataNormal()
 	//xPerColumn = 86;
 	//yPerRow = 290;
 	ConvertDisplayLineToRoom(0, 180, 4, 40, 86, 190);
-	CreateBlobsFromFinalLineData(86, 190);
+	//CreateBlobsFromFinalLineData(86, 190);
+	CreateBlobsFromFinalLineData(LIDAR_BLOB_ROW_RESOLUTION, LIDAR_BLOB_COLUMN_RESOLUTION);
 	PrintBlobList();
 
 	return true;

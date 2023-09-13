@@ -11,7 +11,11 @@
 #ifdef __XC16__
 #include "min_max.h"
 #endif
+
 #include "blob.h"
+
+#include "lidar_conf.h"
+
 
 extern     int16_t yPerRow, xPerColumn, absBounds;
 //Y starts high and goes downward to 0
@@ -188,7 +192,7 @@ float GetAngleToBlob(int8_t blob)
 
 	// Compute Center of Blob
 	GetBlobCenter(blob, &centerX, &centerY);
-	float a = (float)centerY / (float)(centerX-90);
+	float a = (float)centerY / (float)(centerX);
 	a = (float)atan(a);
 	return a;
 }
@@ -200,7 +204,6 @@ float GetRealAngleToBlob(int8_t blob)
 
 	if ((yPerRow != 0) && (xPerColumn != 0))
 	{
-
 		// Compute Center of Blob
 		GetBlobCenter(blob, &centerX, &centerY);
 
@@ -250,9 +253,10 @@ void GetLargestBlobData(float *angle, uint16_t *distance)
 	*distance = GetDistanceToBlobCenter(index);
 
 }
+//#define LIDAR_BLOB_ROWS        20U
+//#define LIDAR_BLOB_COLUMNS     180U
 
-#define NUM_COLS  180 
-#define NUM_ROWS  50
+
 // to calculate what xPerColumn should be, figure out the max x distance in one direction in mm.  Then devide this by (NUM_COLS/2)
 // to calculate what yPerRow should be, figure out the max Y distance in mm.  Then devide this by (NUM_ROWS/2)
 
@@ -262,10 +266,10 @@ int CreateBlobsFromFinalLineData(uint16_t xPerColumn, uint16_t yPerRow)
     uint16_t divY;
     int16_t minX = 1000;
 
-    minX = (NUM_COLS / -2) * xPerColumn;
+    minX = ((int)LIDAR_BLOB_COLUMNS /  -2) * (int)xPerColumn;
 
     ClearBlobs();
-    for (int16_t row = NUM_ROWS; row > 0; row--)
+    for (int16_t row = LIDAR_BLOB_ROWS; row > 0; row--)
     {
         for (uint16_t col = 0; col < 180; col++)
         {

@@ -337,18 +337,14 @@ u_result _waitCapsuledNodeRTOS(rplidar_response_capsule_measurement_nodes_t* nod
 // 
 u_result loopScanExpressAddDataRTOS(bool start, uint16_t *sampleCount, int16_t rotate)
 {
-    //    static uint16_t recvNodeCount = 0;
     u_result ans;
-
     rplidar_response_measurement_node_t nodes[32];
     float ang;
 
     *sampleCount = 0;
 
-
     // Get new data and place it in currentCapsuleNode.  Notify when capsule is complete. 
     if  ((ans = _waitCapsuledNodeRTOS( &currentCapsuleNode, start)) == RESULT_WAITING) {
-       // _isScanning = false;
         return RESULT_WAITING;
     }
 
@@ -370,9 +366,10 @@ u_result loopScanExpressAddDataRTOS(bool start, uint16_t *sampleCount, int16_t r
                 finalLineData[angle].angle_q6_checkbit = nodes[pos].angle_q6_checkbit;
                 ang = (float)(finalLineData[angle].angle_q6_checkbit >> 6);
                 ang = ang * (float)0.0174533;
-                // If this box is in the active area mark it.
+
                 finalLineData[angle].x = (int16_t)trunc(-1.0 * cos(ang) * (float)(finalLineData[angle].distance_q2 >> 2));
                 finalLineData[angle].y = (int16_t)trunc(sin(ang) * (float)(finalLineData[angle].distance_q2 >> 2));
+                
                 if ((insideX_left < finalLineData[angle].x) && (finalLineData[angle].x < insideX_right) && (finalLineData[angle].y < inside_up))
                 {
                     finalLineData[angle].sync_quality = 1;
@@ -386,7 +383,7 @@ u_result loopScanExpressAddDataRTOS(bool start, uint16_t *sampleCount, int16_t r
 }
 
 
-
+#ifndef __XC16__
 u_result _waitCapsuledNode(rplidar_response_capsule_measurement_nodes_t *node, _u32 timeout)
 {
     int  recvPos = 0;
@@ -463,7 +460,7 @@ u_result _waitCapsuledNode(rplidar_response_capsule_measurement_nodes_t *node, _
     return RESULT_OPERATION_TIMEOUT;
 }
  
-
+#endif
 // grab some express data and put it in the global structs _cached_scan_node_hq_buf
 // Inside box.
 #ifndef __XC16__

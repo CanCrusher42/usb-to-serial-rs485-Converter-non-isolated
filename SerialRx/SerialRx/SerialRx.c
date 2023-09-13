@@ -82,7 +82,7 @@
 
 HANDLE hComm;
 
-//#define LPLIBRARY
+#define LPLIBRARY
 bool rb_begin();
 
 
@@ -1231,8 +1231,8 @@ main()
 	//bool runAllTests();
 	//int RunBlobTests();
 	bool runAllRtosTests();
-	 runAllRtosTests();
-	//RunBlobTests();
+	// runAllRtosTests();
+	RunBlobTests();
 	//runAllTests();
 
 
