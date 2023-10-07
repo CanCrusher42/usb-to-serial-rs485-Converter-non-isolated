@@ -8,10 +8,10 @@
 #define BLOBS_IN_LIST 10
 
 typedef struct blob_detail_struct {
-    uint16_t   angle_q6_checkbit_left; 
-    uint16_t   distance_q2_left;
-    uint16_t   angle_q6_checkbit_right; 
-    uint16_t   distance_q2_right;
+    int16_t   minX; 
+    int16_t   maxX;
+	int16_t   minY;
+	int16_t   maxY;
 
 }blobDetailStruct_t;
 

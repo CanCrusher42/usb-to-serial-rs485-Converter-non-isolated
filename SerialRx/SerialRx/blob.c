@@ -174,7 +174,7 @@ int8_t addPointToBlobList(int8_t x, int8_t y)
 	return firstBlob;
 }
 
-int8_t addPointToBlobListIfPossible(int8_t x, int8_t y, uint16_t angle, uint16_t distance)
+int8_t addDetailedPointToBlobList(int8_t x, int8_t y, int16_t realX, int16_t realY)
 {
 	bool found = false;
 	uint8_t firstBlob = 99;
@@ -191,29 +191,29 @@ int8_t addPointToBlobListIfPossible(int8_t x, int8_t y, uint16_t angle, uint16_t
                 // Then as we continue to search, and  if we find this same point in another blob (found == true), .  
 				if (found == false)
 				{
+					// do blob values
 					if (x < blobList[i].xLeft)
-                    {
 						blobList[i].xLeft = x;
-                        if (angle <blobDetails[i].angle_q6_checkbit_left) // This may always be true.... I don't know for sure.
-                        {
-                            blobDetails[i].angle_q6_checkbit_left = angle;
-                            blobDetails[i].distance_q2_left = distance;
-                        }
-                    }
 					else if (x > blobList[i].xRight)
-                    {
 						blobList[i].xRight = x;
-                        if (angle >blobDetails[i].angle_q6_checkbit_right) // This may always be true.... I don't know for sure.
-                        {
-                            blobDetails[i].angle_q6_checkbit_right = angle;
-                            blobDetails[i].distance_q2_right = distance;
-                        }
-                    }
 
 					if (y < blobList[i].yLower)
 						blobList[i].yLower = y;
 					else if (y > blobList[i].yUpper)
 						blobList[i].yUpper = x;
+
+					// do precise Values
+					if (realX < blobDetails[i].minX)
+						blobDetails[i].minX = realX;
+					else if (realX > blobDetails[i].maxX)
+						blobDetails[i].maxX = realX;
+
+					if (realY < blobDetails[i].minY)
+						blobDetails[i].minY = realY;
+					else if (realY > blobDetails[i].maxY)
+						blobDetails[i].maxY = realY;
+
+
 					found = true;
 					firstBlob = i;
 					blobList[i].numSamples++;
@@ -238,9 +238,9 @@ int8_t addPointToBlobListIfPossible(int8_t x, int8_t y, uint16_t angle, uint16_t
 			{
 				blobList[i].xLeft = blobList[i].xRight = x;
 				blobList[i].yUpper = blobList[i].yLower = y;
+				blobDetails[i].minX = blobDetails[i].maxX = realX;
+				blobDetails[i].minY = blobDetails[i].maxY = realY;
 				blobList[i].numSamples = 1;
-                blobDetails[i].angle_q6_checkbit_left = blobDetails[i].angle_q6_checkbit_left = angle;
-                blobDetails[i].distance_q2_left = blobDetails[i].distance_q2_right = distance;
 				return i;
 			}
 		}
@@ -260,6 +260,23 @@ void MergeSecondBlobIntoFirst(uint8_t firstBlob, uint8_t secondBlob)
 	blobList[firstBlob].numSamples += blobList[secondBlob].numSamples;
 	ClearBlobNumber(secondBlob);
     printf("M%d %d\n",firstBlob,secondBlob);
+}
+
+// The new blob will combine the two 
+void MergeDetailedSecondBlobIntoFirst(uint8_t firstBlob, uint8_t secondBlob)
+{
+	blobList[firstBlob].xLeft = min(blobList[firstBlob].xLeft, blobList[secondBlob].xLeft);
+	blobList[firstBlob].xRight = max(blobList[firstBlob].xRight, blobList[secondBlob].xRight);
+	blobList[firstBlob].yUpper = max(blobList[firstBlob].yUpper, blobList[secondBlob].yUpper);
+	blobList[firstBlob].yLower = min(blobList[firstBlob].yLower, blobList[secondBlob].yLower);
+	blobDetails[firstBlob].minX = min(blobDetails[firstBlob].minX, blobDetails[secondBlob].minX);
+	blobDetails[firstBlob].maxX = max(blobDetails[firstBlob].maxX, blobDetails[secondBlob].maxX);
+	blobDetails[firstBlob].minY = min(blobDetails[firstBlob].minY, blobDetails[secondBlob].minY);
+	blobDetails[firstBlob].maxY = max(blobDetails[firstBlob].maxY, blobDetails[secondBlob].maxY);
+
+	blobList[firstBlob].numSamples += blobList[secondBlob].numSamples;
+	ClearBlobNumber(secondBlob);
+	printf("M%d %d\n", firstBlob, secondBlob);
 }
 
 
