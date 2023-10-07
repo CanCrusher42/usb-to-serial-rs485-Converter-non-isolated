@@ -31,6 +31,7 @@ blobDetailStruct_t blobDetails[BLOBS_IN_LIST];
 void ClearBlobNumber(uint8_t i)
 {
 	memset(&blobList[i], 0, sizeof(blobStruct_t));
+	memset(&blobDetails[i], 0, sizeof(blobDetailStruct_t));
 	// To make the search go faster, we need a active blob count
 	// Then also pack the arrary each time we remove the link.
     
@@ -38,7 +39,8 @@ void ClearBlobNumber(uint8_t i)
 
 void ClearBlobs()
 {
-    memset(&blobList[0],0, sizeof(blobStruct_t)* BLOBS_IN_LIST);
+    memset(&blobList[0],    0, sizeof(blobStruct_t)* BLOBS_IN_LIST);
+	memset(&blobDetails[0], 0, sizeof(blobDetailStruct_t) * BLOBS_IN_LIST);
     
 }
 
@@ -49,14 +51,14 @@ void ClearFinalLineData()
 
 void PrintBlobList()
 {
-	printf("B -  ULx ,      ULy      Size\n");
-//    printf("B -  ULx ,      ULy   LRx ,       LRy    Size\n");
+	printf("B -  ULx ,      ULy      Size  Ang  Dis   Hits  rlSize \n");
+//    printf("B -  ULx ,      ULy   LRx ,       LRy    Size  Hits \n");
 	for (uint8_t i = 0; i < BLOBS_IN_LIST; i++)
 	{
 
 		if (blobList[i].numSamples > 0)
 		{
-            printf("%d - %3d(%3d) ,   %3d   %4d   %4.1f   %d \n", i, blobList[i].xLeft, blobList[i].xLeft-90, blobList[i].yUpper,  GetBlobSize(i), GetRealAngleToBlob(i)* 57.2958F,  GetRealDistanceToBlobCenter(i));
+            printf("%d - %3d(%3d) ,   %3d   %4d   %4.1f   %d       %d   %d\n", i, blobList[i].xLeft, blobList[i].xLeft-90, blobList[i].yUpper,  GetBlobSize(i), GetRealAngleToBlob(i)* 57.2958F,  GetRealDistanceToBlobCenter(i), GetBlobHits(i), GetRealBlobSize(i));
 //			printf("%d - %3d(%3d) ,   %3d   %3d(%3d) ,    %3d  %4d \n", i, blobList[i].xLeft, blobList[i].xLeft-90, blobList[i].yUpper, blobList[i].xRight, blobList[i].xRight-90,  blobList[i].yLower, GetBlobSize(i));
 		}
 	}
@@ -110,7 +112,18 @@ int8_t addPointToBlobList(int8_t x, int8_t y)
 {
 	bool found = false;
 	uint8_t firstBlob = 99;
-    printf("\n[x%i(%i) y%i]\n",x,x-90,y);
+	if (x < 0)
+	{
+		printf("ERROR %s x is negitive %i\n", __FUNCTION__, x);
+		return -1;
+	}
+	if (y < 0)
+	{
+		printf("ERROR %s y is negitive %i\n", __FUNCTION__, y);
+		return -1;
+	}
+
+//    printf("\n[x%i(%i) y%i]\n",x,x-90,y);
 	for (uint8_t i = 0; i < BLOBS_IN_LIST; i++)
 	{
         // if we blobs in the list, first see if it part of one already.
@@ -156,7 +169,7 @@ int8_t addPointToBlobList(int8_t x, int8_t y)
     // If it was not found, create a new blob and put this point in it.
 	if (found == false)
 	{
-		for (uint8_t i = 0; i < BLOBS_IN_LIST; i++)
+		for (int8_t i = 0; i < BLOBS_IN_LIST; i++)
 		{
 			if (blobList[i].numSamples == 0)
 			{
@@ -221,7 +234,7 @@ int8_t addDetailedPointToBlobList(int8_t x, int8_t y, int16_t realX, int16_t rea
 				else   // This point is part of 2 or more blobs, merge this one into the first one found
 				{      // This point was already added into firstBlob so that means we can just merge this second blob into firstBlob and then delete this blob from the list. 
                        // This will continue if this point was part of a third or fourth one as well.
-					MergeSecondBlobIntoFirst(firstBlob, i);
+					MergeDetailedSecondBlobIntoFirst(firstBlob, i);
 					ClearBlobNumber(i);
 				}
 			}
@@ -259,7 +272,7 @@ void MergeSecondBlobIntoFirst(uint8_t firstBlob, uint8_t secondBlob)
 	blobList[firstBlob].yLower = min(blobList[firstBlob].yLower, blobList[secondBlob].yLower);
 	blobList[firstBlob].numSamples += blobList[secondBlob].numSamples;
 	ClearBlobNumber(secondBlob);
-    printf("M%d %d\n",firstBlob,secondBlob);
+//    printf("M%d %d\n",firstBlob,secondBlob);
 }
 
 // The new blob will combine the two 
@@ -287,7 +300,6 @@ void MergeDetailedSecondBlobIntoFirst(uint8_t firstBlob, uint8_t secondBlob)
 		*x = (blobList[blob].xLeft  + blobList[blob].xRight) / 2;
 		*y = (blobList[blob].yUpper + blobList[blob].yLower) / 2;
 	}
-
 }
 
  
@@ -295,7 +307,7 @@ void MergeDetailedSecondBlobIntoFirst(uint8_t firstBlob, uint8_t secondBlob)
  {
 	 int16_t x = 0, y = 0;
 	 GetBlobCenter(blob, &x, &y);
-	 int16_t distance = (int16_t)round(sqrt(x * x + y * y));
+	 uint16_t distance = (uint16_t)round(sqrt((x-90) * (x-90) + y * y));
 	 return distance;
  }
  //yPerRow, xPerColumn
@@ -350,19 +362,21 @@ float GetRealAngleToBlob(int8_t blob)
 		// Compute Center of Blob
 		GetBlobCenter(blob, &centerX, &centerY);
         realX = GetRealX(centerX);
-        
 		float a = (float)(centerY*LidarDefines.BlobYPerRow) / (float)(GetRealX(centerX));
-        
-        a = 0-(float)atan(a);
+        a = atan(a);
         if (a<0)
-            a=0.0-a;
+            a = -1.0f*a;
         else
-            a = 3.1419-a;
-       // printf("%d %d, %d %d, f=%3.1f \n",centerX,centerY,realX,(centerY*LidarDefines.BlobYPerRow) ,a*57.1);
+            a = 1.571f + a;
+
+        //printf("%d %d, %d %d, f=%3.1f \n",centerX,centerY,realX,(centerY*LidarDefines.BlobYPerRow) ,a*57.1);
 		return a;
 	}
 	else
-		return GetAngleToBlob(blob);
+	{
+		printf("%s ERROR, LidarDefines not set\n", __FUNCTION__);
+		return 0;
+	}
 }
 
 
@@ -371,6 +385,25 @@ uint16_t GetBlobSize(uint8_t blob)
 	uint16_t tempSize = (blobList[blob].xRight - blobList[blob].xLeft) + 1;
 	tempSize *= (blobList[blob].yUpper - blobList[blob].yLower + 1);
 	return tempSize;
+}
+
+uint16_t GetRealBlobSize(uint8_t blob)
+{
+	blobDetailStruct_t* ptr = &blobDetails[blob];
+
+	uint32_t x = ptr->maxX - ptr->minX;
+	uint32_t y = ptr->maxY - ptr->minY;
+	uint32_t square = x * x + y * y;
+	uint16_t size = (uint16_t)(((uint32_t)sqrt(square)) & 0xFFFF);
+	return size;
+}
+
+uint8_t GetBlobHits(uint8_t blob)
+{
+	if (blob < BLOBS_IN_LIST)
+	{
+		return blobList[blob].numSamples;
+	}
 }
 
 

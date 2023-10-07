@@ -30,12 +30,15 @@ void ClearFinalLineData();
 int8_t addPointToBlobList(int8_t x, int8_t y);
 void MergeSecondBlobIntoFirst(uint8_t firstBlob, uint8_t secondBlob);
 int  CreateBlobsFromFinalLineData(uint16_t xPerColumnA, uint16_t yPerRowA);
-
+int8_t addDetailedPointToBlobList(int8_t x, int8_t y, int16_t realX, int16_t realY);
+void MergeDetailedSecondBlobIntoFirst(uint8_t firstBlob, uint8_t secondBlob);
 
 uint16_t GetBlobCount();
+uint8_t  GetBlobHits(uint8_t blob);
 float    GetAngleToBlob(int8_t blob);
 float    GetRealAngleToBlob(int8_t blob);
 uint16_t GetBlobSize(uint8_t blob);
+uint16_t GetRealBlobSize(uint8_t blob);
 uint16_t GetDistanceToBlobCenter(uint8_t blob);
 uint16_t GetRealDistanceToBlobCenter(uint8_t blob);
 void     GetBlobCenter(uint8_t blob, int16_t* x, int16_t* y);
