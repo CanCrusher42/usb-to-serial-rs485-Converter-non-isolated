@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include "inc/rptypes.h"
 #include "inc/rplidar_protocol.h"
@@ -10,21 +11,24 @@
 #include "inc/rplidar_driver_impl.h"
 #include "inc/lp_defines.h"
 #include "serial.h"
+#include "lidar_conf.h"
 #ifdef __XC16__
 #include "../mcc_generated_files/pin_manager.h"
 #endif
-#include <math.h>
+
 
 
 uint32_t GetTickCount();;
 int millis();
 bool OpenLpLidar();
 int lidarClear_serial();
+
 // Class Variables
 int maxValue = 0;
-int16_t insideX_left = -3000;  // cm  100cm to the meter
-int16_t insideX_right = 3000;   // cm
-int16_t inside_up = 2070;   // 150 at home, Hall by desk is 9 foot steps in sandles  (30cm per)  270 cm at work
+//int16_t insideX_left = -3000;  // cm  100cm to the meter
+//int16_t insideX_right = 3000;   // cm
+//int16_t inside_up = 2070;   // 150 at home, Hall by desk is 9 foot steps in sandles  (30cm per)  270 cm at work
+LidarDefinesStruct LidarDefines;
 
 
 
@@ -61,7 +65,30 @@ bool rb_begin()
 #endif
     _isConnected = OpenLpLidar();
     uint32_t startTime = GetTickCount();
-    while ((GetTickCount() - startTime) < 100);
+
+    while ((GetTickCount() - startTime) < 100)
+    {
+    };
+    
+    LidarDefines.BlobNumColumns = 128;
+    LidarDefines.BlobNumRows    = 20;
+    
+    LidarDefines.LidarMaxX     = 5000;
+    LidarDefines.LidarMinX     = -5000;
+    LidarDefines.LidarAbsMaxY   = 2000;
+#ifdef IN_OFFICE    
+    LidarDefines.LidarFenceMinX = -750;
+    LidarDefines.LidarFenceMaxX = 750;
+    LidarDefines.LidarFenceAbsMaxY = 1000;
+#else
+    LidarDefines.LidarFenceMinX = -2000;
+    LidarDefines.LidarFenceMaxX = 2000;
+    LidarDefines.LidarFenceAbsMaxY = 1200;
+
+#endif    
+     LidarDefines.BlobXPerColumn    = (int16_t) ceil((LidarDefines.LidarMaxX-LidarDefines.LidarMinX)/LidarDefines.BlobNumColumns);
+     LidarDefines.BlobYPerRow       = (int16_t) ceil(LidarDefines.LidarAbsMaxY/LidarDefines.BlobNumRows);
+
     return _isConnected;
 }
 
@@ -350,7 +377,7 @@ u_result loopScanExpressAddDataRTOS(bool start, uint16_t *sampleCount, int16_t r
 
     size_t count = 0;
 
-    // Convert Capsule to line format IFF gCapsuleNode is valid and there is a previous cacheline
+     // Convert Capsule to line format IFF gCapsuleNode is valid and there is a previous cacheline
     _capsuleToNormal16(&currentCapsuleNode, nodes, &count,rotate);
 
     // If there is not a previous cacheline count will equal 0.
@@ -370,9 +397,17 @@ u_result loopScanExpressAddDataRTOS(bool start, uint16_t *sampleCount, int16_t r
                 finalLineData[angle].x = (int16_t)trunc(-1.0 * cos(ang) * (float)(finalLineData[angle].distance_q2 >> 2));
                 finalLineData[angle].y = (int16_t)trunc(sin(ang) * (float)(finalLineData[angle].distance_q2 >> 2));
                 
-                if ((insideX_left < finalLineData[angle].x) && (finalLineData[angle].x < insideX_right) && (finalLineData[angle].y < inside_up))
+                // If this box is in the active area mark it.
+                
+                if ( (finalLineData[angle].x > LidarDefines.LidarFenceMinX) && 
+                     (finalLineData[angle].x < LidarDefines.LidarFenceMaxX) && 
+                     (finalLineData[angle].y < LidarDefines.LidarFenceAbsMaxY)&&
+                     ( ((finalLineData[angle].distance_q2>>2) >200)) )
                 {
-                    finalLineData[angle].sync_quality = 1;
+                    finalLineData[angle].sync_quality = 1; 
+              //      if ((finalLineData[angle].distance_q2 >> 2)<1200)
+              //          printf("d=%d a=%d\n",finalLineData[angle].distance_q2 >> 2,finalLineData[angle].angle_q6_checkbit >> 6);
+//                        printf("d=%d a=%d x=%d, y=%d\n",finalLineData[angle].distance_q2 >> 2,finalLineData[angle].angle_q6_checkbit >> 6,finalLineData[angle].x,finalLineData[angle].y);
                 }
                 *sampleCount = *sampleCount+1;
             }
@@ -498,7 +533,8 @@ u_result loopScanExpressData6()
                 x = (int)trunc(-1.0 * cos(ang) * (float)(finalLineData[angle].distance_q2 >> 2));
                 y = (int)trunc(sin(ang) * (float)(finalLineData[angle].distance_q2 >> 2));
 
-                if ((insideX_left < x) && (x < insideX_right) && (y < inside_up))
+
+                if ((LidarDefines.LidarFenceMinX < x) && (x < LidarDefines.LidarFenceMinX) && (y < LidarDefines.LidarFenceAbsMaxY))
                 {
                     finalLineData[angle].sync_quality = 1;
                 } 

@@ -7,6 +7,14 @@
 
 #define BLOBS_IN_LIST 10
 
+typedef struct blob_detail_struct {
+    uint16_t   angle_q6_checkbit_left; 
+    uint16_t   distance_q2_left;
+    uint16_t   angle_q6_checkbit_right; 
+    uint16_t   distance_q2_right;
+
+}blobDetailStruct_t;
+
 typedef struct blob_struct {
 	int8_t xLeft;
 	int8_t xRight;
@@ -21,7 +29,7 @@ void ClearBlobNumber(uint8_t i);
 void ClearFinalLineData();
 int8_t addPointToBlobList(int8_t x, int8_t y);
 void MergeSecondBlobIntoFirst(uint8_t firstBlob, uint8_t secondBlob);
-int  CreateBlobsFromFinalLineData(uint16_t xPerColumn, uint16_t yPerRow);
+int  CreateBlobsFromFinalLineData(uint16_t xPerColumnA, uint16_t yPerRowA);
 
 
 uint16_t GetBlobCount();

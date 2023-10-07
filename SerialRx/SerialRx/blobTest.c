@@ -347,9 +347,52 @@ bool testPrintBlobs()
 	return true;
 }
 
+
+bool testAliasBlobs1()
+{
+	ClearBlobs();
+
+	addPointToBlobList(85, 6);
+	addPointToBlobList(85, 6);
+	addPointToBlobList(85, 6);
+	addPointToBlobList(85, 6);
+	addPointToBlobList(82, 5);
+	addPointToBlobList(82, 5);
+	addPointToBlobList(83, 5);
+	addPointToBlobList(83, 5);
+	addPointToBlobList(83, 5);
+	addPointToBlobList(83, 5);
+	addPointToBlobList(83, 5);
+	addPointToBlobList(84, 5);
+	addPointToBlobList(84, 5);
+	addPointToBlobList(84, 5);
+	addPointToBlobList(84, 5);
+	addPointToBlobList(84, 5);
+	addPointToBlobList(84, 5);
+	addPointToBlobList(85, 5);
+	
+/*	addPointToBlobList(96, 4);
+	addPointToBlobList(96, 4);
+	addPointToBlobList(96, 4);
+	addPointToBlobList(96, 4);
+	addPointToBlobList(96, 4);
+	addPointToBlobList(96, 4);
+	addPointToBlobList(96, 4);
+	addPointToBlobList(96, 4);
+	addPointToBlobList(97, 4);
+	addPointToBlobList(97, 4);
+	addPointToBlobList(97, 4); */
+	PrintBlobList();
+	uint16_t distance = GetDistanceToBlobCenter(0);
+	int16_t count1 = GetBlobCount();
+}
+
+
 int RunBlobTests()
 {
 	bool result = true;
+	rb_begin();
+	result &= testAliasBlobs1();
 	result &= testAddPointToBlankList();
 	result &= testHorzVertBasic1();
 	result &= testCornerBasic1();
