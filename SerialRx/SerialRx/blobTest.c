@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include "lidar_conf.h"
 #include "lp_defines.h"
 #include "inc/rplidar_cmd.h"
 #include "string.h"
@@ -10,7 +11,7 @@
 
 
 extern rplidar_response_measurement_node_t finalLineData[1 * 180];
-
+extern LidarDefinesStruct LidarDefines;
 extern blobStruct_t blobList[BLOBS_IN_LIST];
 extern blobDetailStruct_t blobDetails[BLOBS_IN_LIST];
 
@@ -629,6 +630,59 @@ bool testDetailedBlobs2()
 	return result;
 }
 
+bool testQuadrantAngles()
+{
+	ClearBlobs();
+	int value = addPointToBlobList(1, 2); ; // Angle should be less than 45 or 3.1415/4
+	value = addPointToBlobList(88, 7); ; // Angle should be greater than 45 and less than 90 
+	value = addPointToBlobList(92, 7); ; // Angle should be greater than 90 and less than 135
+	value = addPointToBlobList(175, 3); ; // Angle should be greater than 135
+
+	float angle = GetRealAngleToBlob(0) * DEGREES_PER_RADIAN;
+	if (angle>45.0)
+	{
+		printf("ERROR %s Expected angle < 45, got %3.1f\n", __FUNCTION__, angle);
+		return false;
+	}
+
+	angle = GetRealAngleToBlob(1) * DEGREES_PER_RADIAN;
+	if ( (angle <  45.0) || (angle>=90.0))
+	{
+		printf("ERROR %s Expected angle between 45 & 90, got %3.1f\n", __FUNCTION__, angle);
+		return false;
+	}
+
+	angle = GetRealAngleToBlob(2) * DEGREES_PER_RADIAN;
+	if ((angle < 90.0) || (angle > 135.0))
+	{
+		printf("ERROR %s Expected angle between 90 & 135, got %3.1f\n", __FUNCTION__, angle);
+		return false;
+	}
+
+	angle = GetRealAngleToBlob(3) * DEGREES_PER_RADIAN;
+	if ((angle < 135.0) || (angle > 180.0))
+	{
+		printf("ERROR %s Expected angle between 135 & 180, got %3.1f\n", __FUNCTION__, angle);
+		return false;
+	}
+
+	return true;
+}
+
+bool testOverflow()
+{
+	ClearBlobs();
+	int value = addPointToBlobList(1, LidarDefines.BlobNumRows-1); ; // Angle should be less than 45 or 3.1415/4
+	int distance = GetRealDistanceToBlobCenter(0);
+	if ((distance < 7000) || (distance > 8000) )
+
+	{
+		printf("ERROR %s Expected distance between 7000 and 8000, got %i\n", __FUNCTION__, distance);
+			return false;
+	}
+	return true;
+
+}
 
 int RunBlobTests()
 {
@@ -650,7 +704,8 @@ int RunBlobTests()
 	result &= testGetLargestBlob();
 	result &= testGetDistanceToBlobCenter();
 	result &= testPrintBlobs();
-
+	result &= testQuadrantAngles();
+	result &= testOverflow();
 
 
 	if (result != true)

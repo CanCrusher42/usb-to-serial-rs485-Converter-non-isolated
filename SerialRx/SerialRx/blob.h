@@ -16,18 +16,19 @@ typedef struct blob_detail_struct {
 }blobDetailStruct_t;
 
 typedef struct blob_struct {
-	int8_t xLeft;
-	int8_t xRight;
-	int8_t yUpper;
-	int8_t yLower;
+	uint8_t xLeft;
+	uint8_t xRight;
+	uint8_t yUpper;
+	uint8_t yLower;
 	uint8_t numSamples;
 } blobStruct_t;
 
+#define DEGREES_PER_RADIAN 57.2958F
 
 void ClearBlobs();
 void ClearBlobNumber(uint8_t i);
 void ClearFinalLineData();
-int8_t addPointToBlobList(int8_t x, int8_t y);
+int8_t addPointToBlobList(uint8_t x, uint8_t y);
 void MergeSecondBlobIntoFirst(uint8_t firstBlob, uint8_t secondBlob);
 int  CreateBlobsFromFinalLineData(uint16_t xPerColumnA, uint16_t yPerRowA);
 int8_t addDetailedPointToBlobList(int8_t x, int8_t y, int16_t realX, int16_t realY);
@@ -35,8 +36,8 @@ void MergeDetailedSecondBlobIntoFirst(uint8_t firstBlob, uint8_t secondBlob);
 
 uint16_t GetBlobCount();
 uint8_t  GetBlobHits(uint8_t blob);
-float    GetAngleToBlob(int8_t blob);
-float    GetRealAngleToBlob(int8_t blob);
+float    GetAngleToBlob(uint8_t blob);
+float    GetRealAngleToBlob(uint8_t blob);
 uint16_t GetBlobSize(uint8_t blob);
 uint16_t GetRealBlobSize(uint8_t blob);
 uint16_t GetDistanceToBlobCenter(uint8_t blob);

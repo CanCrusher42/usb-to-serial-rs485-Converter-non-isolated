@@ -68,7 +68,7 @@ void PrintBlobList()
     //printf("Angle to largest Blob = %3f (%3f) degrees  Distance = %d(%d mm) size = %d\n", (double)(GetAngleToBlob(largestBlob) * 57.2958F), (double)(GetRealAngleToBlob(largestBlob) * 57.2958F), GetDistanceToBlobCenter(largestBlob), GetRealDistanceToBlobCenter(largestBlob), GetBlobSize(largestBlob));    
 }
 
-int16_t GetRealX(int16_t shiftedX)
+int16_t GetRealX(uint16_t shiftedX)
 {
     return (shiftedX-90)* LidarDefines.BlobXPerColumn;
     return shiftedX*LidarDefines.BlobXPerColumn+minX;
@@ -108,7 +108,7 @@ bool IsPointInBlob(uint8_t blobNumber, int8_t x, int8_t y)
 	return false;
 }
 
-int8_t addPointToBlobList(int8_t x, int8_t y)
+int8_t addPointToBlobList(uint8_t x, uint8_t y)
 {
 	bool found = false;
 	uint8_t firstBlob = 99;
@@ -364,10 +364,11 @@ float GetRealAngleToBlob(int8_t blob)
         realX = GetRealX(centerX);
 		float a = (float)(centerY*LidarDefines.BlobYPerRow) / (float)(GetRealX(centerX));
         a = atan(a);
+		float b = a * DEGREES_PER_RADIAN;
         if (a<0)
             a = -1.0f*a;
         else
-            a = 1.571f + a;
+            a = 3.1415f - a;
 
         //printf("%d %d, %d %d, f=%3.1f \n",centerX,centerY,realX,(centerY*LidarDefines.BlobYPerRow) ,a*57.1);
 		return a;
