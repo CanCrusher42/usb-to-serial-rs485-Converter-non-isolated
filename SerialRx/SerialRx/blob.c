@@ -339,7 +339,7 @@ void MergeDetailedSecondBlobIntoFirst(uint8_t firstBlob, uint8_t secondBlob)
  }
 
  // get angle to blob in radians
-float GetAngleToBlob(int8_t blob)
+float GetAngleToBlob(uint8_t blob)
 { 
 	int16_t centerX, centerY;
 
@@ -352,7 +352,7 @@ float GetAngleToBlob(int8_t blob)
 
 // get angle to blob in radians
 // Should return 0 to 180(0-1.5708).  0 Being left most angle.
-float GetRealAngleToBlob(int8_t blob)
+float GetRealAngleToBlob(uint8_t blob)
 {
 	int16_t centerX, centerY;
     int16_t realX;
@@ -364,7 +364,6 @@ float GetRealAngleToBlob(int8_t blob)
         realX = GetRealX(centerX);
 		float a = (float)(centerY*LidarDefines.BlobYPerRow) / (float)(GetRealX(centerX));
         a = atan(a);
-		float b = a * DEGREES_PER_RADIAN;
         if (a<0)
             a = -1.0f*a;
         else
@@ -405,6 +404,7 @@ uint8_t GetBlobHits(uint8_t blob)
 	{
 		return blobList[blob].numSamples;
 	}
+    return 0;
 }
 
 
